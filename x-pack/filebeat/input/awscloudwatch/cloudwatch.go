@@ -14,7 +14,7 @@ import (
 	awssdk "github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
 
-	awscommon "github.com/elastic/beats/v7/x-pack/libbeat/common/aws"
+	awscommon "github.com/elastic/beats/v8/x-pack/libbeat/common/aws"
 	"github.com/elastic/elastic-agent-libs/logp"
 )
 

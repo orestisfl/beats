@@ -7,8 +7,8 @@ package provider
 import (
 	"fmt"
 
-	"github.com/elastic/beats/v7/x-pack/functionbeat/config"
-	"github.com/elastic/beats/v7/x-pack/functionbeat/function/core"
+	"github.com/elastic/beats/v8/x-pack/functionbeat/config"
+	"github.com/elastic/beats/v8/x-pack/functionbeat/function/core"
 	conf "github.com/elastic/elastic-agent-libs/config"
 	"github.com/elastic/elastic-agent-libs/logp"
 )

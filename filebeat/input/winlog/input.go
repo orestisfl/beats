@@ -23,15 +23,15 @@ import (
 	"io"
 	"time"
 
-	input "github.com/elastic/beats/v7/filebeat/input/v2"
-	cursor "github.com/elastic/beats/v7/filebeat/input/v2/input-cursor"
-	"github.com/elastic/beats/v7/libbeat/feature"
+	input "github.com/elastic/beats/v8/filebeat/input/v2"
+	cursor "github.com/elastic/beats/v8/filebeat/input/v2/input-cursor"
+	"github.com/elastic/beats/v8/libbeat/feature"
 	"github.com/elastic/elastic-agent-libs/logp"
 	"github.com/elastic/go-concert/ctxtool"
 	"github.com/elastic/go-concert/timed"
 
-	"github.com/elastic/beats/v7/winlogbeat/checkpoint"
-	"github.com/elastic/beats/v7/winlogbeat/eventlog"
+	"github.com/elastic/beats/v8/winlogbeat/checkpoint"
+	"github.com/elastic/beats/v8/winlogbeat/eventlog"
 	conf "github.com/elastic/elastic-agent-libs/config"
 )
 

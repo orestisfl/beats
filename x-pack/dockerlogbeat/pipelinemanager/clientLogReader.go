@@ -15,9 +15,9 @@ import (
 
 	"github.com/docker/docker/api/types/backend"
 
-	"github.com/elastic/beats/v7/libbeat/beat"
-	"github.com/elastic/beats/v7/libbeat/common/acker"
-	"github.com/elastic/beats/v7/x-pack/dockerlogbeat/pipereader"
+	"github.com/elastic/beats/v8/libbeat/beat"
+	"github.com/elastic/beats/v8/libbeat/common/acker"
+	"github.com/elastic/beats/v8/x-pack/dockerlogbeat/pipereader"
 	helper "github.com/elastic/elastic-agent-autodiscover/docker"
 	"github.com/elastic/elastic-agent-libs/logp"
 	"github.com/elastic/elastic-agent-libs/mapstr"

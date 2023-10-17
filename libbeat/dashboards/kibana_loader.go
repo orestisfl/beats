@@ -28,7 +28,7 @@ import (
 
 	"github.com/joeshaw/multierror"
 
-	beatversion "github.com/elastic/beats/v7/libbeat/version"
+	beatversion "github.com/elastic/beats/v8/libbeat/version"
 	"github.com/elastic/elastic-agent-libs/config"
 	"github.com/elastic/elastic-agent-libs/kibana"
 	"github.com/elastic/elastic-agent-libs/logp"

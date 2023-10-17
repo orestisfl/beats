@@ -23,7 +23,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/elastic/beats/v7/filebeat/input/internal/procnet"
+	"github.com/elastic/beats/v8/filebeat/input/internal/procnet"
 )
 
 func TestProcNetTCP(t *testing.T) {

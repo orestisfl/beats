@@ -20,8 +20,8 @@ package takeover
 import (
 	"testing"
 
-	"github.com/elastic/beats/v7/filebeat/backup"
-	"github.com/elastic/beats/v7/libbeat/statestore/backend"
+	"github.com/elastic/beats/v8/filebeat/backup"
+	"github.com/elastic/beats/v8/libbeat/statestore/backend"
 
 	conf "github.com/elastic/elastic-agent-libs/config"
 	"github.com/elastic/elastic-agent-libs/logp"

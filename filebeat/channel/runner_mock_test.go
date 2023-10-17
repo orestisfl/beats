@@ -20,8 +20,8 @@ package channel
 import (
 	"testing"
 
-	"github.com/elastic/beats/v7/libbeat/beat"
-	"github.com/elastic/beats/v7/libbeat/cfgfile"
+	"github.com/elastic/beats/v8/libbeat/beat"
+	"github.com/elastic/beats/v8/libbeat/cfgfile"
 
 	conf "github.com/elastic/elastic-agent-libs/config"
 

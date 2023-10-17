@@ -34,16 +34,16 @@ import (
 	"github.com/elastic/go-lookslike/isdef"
 	"github.com/elastic/go-lookslike/validator"
 
-	"github.com/elastic/beats/v7/heartbeat/eventext"
-	"github.com/elastic/beats/v7/heartbeat/hbtest"
-	"github.com/elastic/beats/v7/heartbeat/hbtestllext"
-	"github.com/elastic/beats/v7/heartbeat/monitors/jobs"
-	"github.com/elastic/beats/v7/heartbeat/monitors/plugin"
-	"github.com/elastic/beats/v7/heartbeat/monitors/wrappers/monitorstate"
-	"github.com/elastic/beats/v7/heartbeat/scheduler"
-	"github.com/elastic/beats/v7/libbeat/beat"
-	"github.com/elastic/beats/v7/libbeat/common/atomic"
-	beatversion "github.com/elastic/beats/v7/libbeat/version"
+	"github.com/elastic/beats/v8/heartbeat/eventext"
+	"github.com/elastic/beats/v8/heartbeat/hbtest"
+	"github.com/elastic/beats/v8/heartbeat/hbtestllext"
+	"github.com/elastic/beats/v8/heartbeat/monitors/jobs"
+	"github.com/elastic/beats/v8/heartbeat/monitors/plugin"
+	"github.com/elastic/beats/v8/heartbeat/monitors/wrappers/monitorstate"
+	"github.com/elastic/beats/v8/heartbeat/scheduler"
+	"github.com/elastic/beats/v8/libbeat/beat"
+	"github.com/elastic/beats/v8/libbeat/common/atomic"
+	beatversion "github.com/elastic/beats/v8/libbeat/version"
 )
 
 func makeMockFactory(pluginsReg *plugin.PluginsReg) (factory *RunnerFactory, sched *scheduler.Scheduler, close func()) {

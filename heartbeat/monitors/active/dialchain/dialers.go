@@ -26,10 +26,10 @@ import (
 	"github.com/elastic/elastic-agent-libs/mapstr"
 	"github.com/elastic/elastic-agent-libs/transport"
 
-	"github.com/elastic/beats/v7/heartbeat/ecserr"
-	"github.com/elastic/beats/v7/heartbeat/eventext"
-	"github.com/elastic/beats/v7/heartbeat/look"
-	"github.com/elastic/beats/v7/libbeat/beat"
+	"github.com/elastic/beats/v8/heartbeat/ecserr"
+	"github.com/elastic/beats/v8/heartbeat/eventext"
+	"github.com/elastic/beats/v8/heartbeat/look"
+	"github.com/elastic/beats/v8/libbeat/beat"
 )
 
 // TCPDialer creates a new NetDialer with constant event fields and default

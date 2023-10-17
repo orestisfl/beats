@@ -26,8 +26,8 @@ import (
 	"path/filepath"
 	"time"
 
-	loginp "github.com/elastic/beats/v7/filebeat/input/filestream/internal/input-logfile"
-	"github.com/elastic/beats/v7/libbeat/common/file"
+	loginp "github.com/elastic/beats/v8/filebeat/input/filestream/internal/input-logfile"
+	"github.com/elastic/beats/v8/libbeat/common/file"
 	conf "github.com/elastic/elastic-agent-libs/config"
 	"github.com/elastic/elastic-agent-libs/logp"
 )

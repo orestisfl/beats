@@ -24,9 +24,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/elastic/beats/v7/libbeat/cfgfile"
-	"github.com/elastic/beats/v7/libbeat/common/reload"
-	"github.com/elastic/beats/v7/libbeat/outputs"
+	"github.com/elastic/beats/v8/libbeat/cfgfile"
+	"github.com/elastic/beats/v8/libbeat/common/reload"
+	"github.com/elastic/beats/v8/libbeat/outputs"
 	"github.com/elastic/elastic-agent-libs/config"
 
 	"github.com/gofrs/uuid"

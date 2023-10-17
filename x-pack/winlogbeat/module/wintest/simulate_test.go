@@ -20,12 +20,12 @@ import (
 	"testing"
 	"time"
 
-	devtools "github.com/elastic/beats/v7/dev-tools/mage"
-	"github.com/elastic/beats/v7/libbeat/beat"
-	"github.com/elastic/beats/v7/libbeat/esleg/eslegclient"
-	"github.com/elastic/beats/v7/libbeat/version"
-	"github.com/elastic/beats/v7/winlogbeat/module"
-	"github.com/elastic/beats/v7/x-pack/winlogbeat/module/wintest"
+	devtools "github.com/elastic/beats/v8/dev-tools/mage"
+	"github.com/elastic/beats/v8/libbeat/beat"
+	"github.com/elastic/beats/v8/libbeat/esleg/eslegclient"
+	"github.com/elastic/beats/v8/libbeat/version"
+	"github.com/elastic/beats/v8/winlogbeat/module"
+	"github.com/elastic/beats/v8/x-pack/winlogbeat/module/wintest"
 	"github.com/elastic/elastic-agent-libs/transport/httpcommon"
 )
 

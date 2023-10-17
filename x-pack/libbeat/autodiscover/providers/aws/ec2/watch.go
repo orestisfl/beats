@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"time"
 
-	awsauto "github.com/elastic/beats/v7/x-pack/libbeat/autodiscover/providers/aws"
+	awsauto "github.com/elastic/beats/v8/x-pack/libbeat/autodiscover/providers/aws"
 	"github.com/elastic/elastic-agent-libs/logp"
 )
 

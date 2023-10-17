@@ -23,7 +23,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/elastic/beats/v7/heartbeat/monitors/stdfields"
+	"github.com/elastic/beats/v8/heartbeat/monitors/stdfields"
 )
 
 func TestTrackerRecord(t *testing.T) {

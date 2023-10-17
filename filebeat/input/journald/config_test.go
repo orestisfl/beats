@@ -28,7 +28,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	jr "github.com/elastic/beats/v7/filebeat/input/journald/pkg/journalread"
+	jr "github.com/elastic/beats/v8/filebeat/input/journald/pkg/journalread"
 	conf "github.com/elastic/elastic-agent-libs/config"
 	"github.com/elastic/elastic-agent-libs/logp"
 )

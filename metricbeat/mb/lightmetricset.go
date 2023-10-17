@@ -20,7 +20,7 @@ package mb
 import (
 	"fmt"
 
-	"github.com/elastic/beats/v7/libbeat/processors"
+	"github.com/elastic/beats/v8/libbeat/processors"
 	conf "github.com/elastic/elastic-agent-libs/config"
 )
 

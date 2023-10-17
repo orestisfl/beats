@@ -24,8 +24,8 @@ package summarizertesthelper
 import (
 	"fmt"
 
-	"github.com/elastic/beats/v7/heartbeat/hbtestllext"
-	"github.com/elastic/beats/v7/heartbeat/monitors/wrappers/summarizer/jobsummary"
+	"github.com/elastic/beats/v8/heartbeat/hbtestllext"
+	"github.com/elastic/beats/v8/heartbeat/monitors/wrappers/summarizer/jobsummary"
 	"github.com/elastic/go-lookslike"
 	"github.com/elastic/go-lookslike/isdef"
 	"github.com/elastic/go-lookslike/llpath"

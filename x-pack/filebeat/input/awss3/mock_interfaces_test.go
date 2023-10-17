@@ -17,8 +17,8 @@ import (
 	types "github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	gomock "github.com/golang/mock/gomock"
 
-	beat "github.com/elastic/beats/v7/libbeat/beat"
-	aws "github.com/elastic/beats/v7/x-pack/libbeat/common/aws"
+	beat "github.com/elastic/beats/v8/libbeat/beat"
+	aws "github.com/elastic/beats/v8/x-pack/libbeat/common/aws"
 	logp "github.com/elastic/elastic-agent-libs/logp"
 )
 

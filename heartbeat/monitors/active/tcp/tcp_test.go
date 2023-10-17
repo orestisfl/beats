@@ -33,11 +33,11 @@ import (
 	"github.com/elastic/go-lookslike/testslike"
 	"github.com/elastic/go-lookslike/validator"
 
-	"github.com/elastic/beats/v7/heartbeat/ecserr"
-	"github.com/elastic/beats/v7/heartbeat/hbtest"
-	"github.com/elastic/beats/v7/heartbeat/hbtestllext"
-	"github.com/elastic/beats/v7/libbeat/beat"
-	btesting "github.com/elastic/beats/v7/libbeat/testing"
+	"github.com/elastic/beats/v8/heartbeat/ecserr"
+	"github.com/elastic/beats/v8/heartbeat/hbtest"
+	"github.com/elastic/beats/v8/heartbeat/hbtestllext"
+	"github.com/elastic/beats/v8/libbeat/beat"
+	btesting "github.com/elastic/beats/v8/libbeat/testing"
 )
 
 func testTCPCheck(t *testing.T, host string, port uint16) *beat.Event {

@@ -14,16 +14,16 @@ import (
 	"github.com/elastic/go-lookslike/testslike"
 	"github.com/elastic/go-lookslike/validator"
 
-	"github.com/elastic/beats/v7/heartbeat/hbtest"
-	"github.com/elastic/beats/v7/heartbeat/hbtestllext"
-	_ "github.com/elastic/beats/v7/heartbeat/monitors/active/http"
-	_ "github.com/elastic/beats/v7/heartbeat/monitors/active/icmp"
-	_ "github.com/elastic/beats/v7/heartbeat/monitors/active/tcp"
-	"github.com/elastic/beats/v7/heartbeat/monitors/wrappers/monitorstate"
-	"github.com/elastic/beats/v7/heartbeat/monitors/wrappers/summarizer/jobsummary"
-	"github.com/elastic/beats/v7/heartbeat/monitors/wrappers/summarizer/summarizertesthelper"
-	"github.com/elastic/beats/v7/libbeat/beat"
-	"github.com/elastic/beats/v7/x-pack/heartbeat/scenarios/framework"
+	"github.com/elastic/beats/v8/heartbeat/hbtest"
+	"github.com/elastic/beats/v8/heartbeat/hbtestllext"
+	_ "github.com/elastic/beats/v8/heartbeat/monitors/active/http"
+	_ "github.com/elastic/beats/v8/heartbeat/monitors/active/icmp"
+	_ "github.com/elastic/beats/v8/heartbeat/monitors/active/tcp"
+	"github.com/elastic/beats/v8/heartbeat/monitors/wrappers/monitorstate"
+	"github.com/elastic/beats/v8/heartbeat/monitors/wrappers/summarizer/jobsummary"
+	"github.com/elastic/beats/v8/heartbeat/monitors/wrappers/summarizer/summarizertesthelper"
+	"github.com/elastic/beats/v8/libbeat/beat"
+	"github.com/elastic/beats/v8/x-pack/heartbeat/scenarios/framework"
 )
 
 type CheckHistItem struct {

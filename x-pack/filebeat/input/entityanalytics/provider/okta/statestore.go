@@ -12,8 +12,8 @@ import (
 
 	"github.com/urso/sderr"
 
-	"github.com/elastic/beats/v7/x-pack/filebeat/input/entityanalytics/internal/kvstore"
-	"github.com/elastic/beats/v7/x-pack/filebeat/input/entityanalytics/provider/okta/internal/okta"
+	"github.com/elastic/beats/v8/x-pack/filebeat/input/entityanalytics/internal/kvstore"
+	"github.com/elastic/beats/v8/x-pack/filebeat/input/entityanalytics/provider/okta/internal/okta"
 )
 
 var (

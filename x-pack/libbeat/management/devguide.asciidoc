@@ -61,7 +61,7 @@ and so the logic of the AST transformations present in `elastic-agent/internal/s
 
 In order for a beat to perform its own config transformations, it must register a callback function, as such:
 ```
-import "github.com/elastic/beats/v7/x-pack/libbeat/management"
+import "github.com/elastic/beats/v8/x-pack/libbeat/management"
 ...
 management.ConfigTransform.SetTransform(metricbeatCfg)
 ```
@@ -91,7 +91,7 @@ as the tests themselves will try to initialize a number of global variables, req
 To add a new beat to the test, you must fetch the `BeatsRootCmd` object that starts a beat executible, and pass it to a wrapper that will
 modify the beats environment for use in a test wrapper:
 ```
-import fbroot "github.com/elastic/beats/v7/x-pack/filebeat/cmd"
+import fbroot "github.com/elastic/beats/v8/x-pack/filebeat/cmd"
 ...
 filebeatCmd := fbroot.Filebeat()
 tests.InitBeatsForTest(t, filebeatCmd)

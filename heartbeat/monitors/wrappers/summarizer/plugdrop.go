@@ -18,8 +18,8 @@
 package summarizer
 
 import (
-	"github.com/elastic/beats/v7/heartbeat/eventext"
-	"github.com/elastic/beats/v7/libbeat/beat"
+	"github.com/elastic/beats/v8/heartbeat/eventext"
+	"github.com/elastic/beats/v8/libbeat/beat"
 )
 
 type DropBrowserExtraEvents struct{}

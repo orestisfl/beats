@@ -27,9 +27,9 @@ import (
 
 	"github.com/gofrs/uuid"
 
-	"github.com/elastic/beats/v7/libbeat/autodiscover"
-	"github.com/elastic/beats/v7/libbeat/autodiscover/template"
-	"github.com/elastic/beats/v7/libbeat/common"
+	"github.com/elastic/beats/v8/libbeat/autodiscover"
+	"github.com/elastic/beats/v8/libbeat/autodiscover/template"
+	"github.com/elastic/beats/v8/libbeat/common"
 
 	"github.com/elastic/elastic-agent-autodiscover/bus"
 	"github.com/elastic/elastic-agent-autodiscover/docker"

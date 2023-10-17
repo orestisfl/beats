@@ -14,7 +14,7 @@ import (
 	"google.golang.org/api/option"
 	sqladmin "google.golang.org/api/sqladmin/v1"
 
-	"github.com/elastic/beats/v7/x-pack/metricbeat/module/gcp"
+	"github.com/elastic/beats/v8/x-pack/metricbeat/module/gcp"
 	"github.com/elastic/elastic-agent-libs/logp"
 	"github.com/elastic/elastic-agent-libs/mapstr"
 )

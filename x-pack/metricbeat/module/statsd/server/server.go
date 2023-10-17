@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	serverhelper "github.com/elastic/beats/v7/metricbeat/helper/server"
-	"github.com/elastic/beats/v7/metricbeat/helper/server/udp"
-	"github.com/elastic/beats/v7/metricbeat/mb"
+	serverhelper "github.com/elastic/beats/v8/metricbeat/helper/server"
+	"github.com/elastic/beats/v8/metricbeat/helper/server/udp"
+	"github.com/elastic/beats/v8/metricbeat/mb"
 	"github.com/elastic/elastic-agent-libs/mapstr"
 )
 

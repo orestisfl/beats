@@ -20,9 +20,9 @@ package controllermanager
 import (
 	"fmt"
 
-	"github.com/elastic/beats/v7/metricbeat/helper/prometheus"
-	"github.com/elastic/beats/v7/metricbeat/mb"
-	"github.com/elastic/beats/v7/metricbeat/module/kubernetes/util"
+	"github.com/elastic/beats/v8/metricbeat/helper/prometheus"
+	"github.com/elastic/beats/v8/metricbeat/mb"
+	"github.com/elastic/beats/v8/metricbeat/module/kubernetes/util"
 	"github.com/elastic/elastic-agent-libs/mapstr"
 )
 

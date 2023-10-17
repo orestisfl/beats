@@ -7,7 +7,7 @@ package gcs
 import (
 	"time"
 
-	"github.com/elastic/beats/v7/libbeat/common/match"
+	"github.com/elastic/beats/v8/libbeat/common/match"
 )
 
 // MaxWorkers, Poll, PollInterval, BucketTimeOut, ParseJSON, FileSelectors, TimeStampEpoch & ExpandEventListFromField

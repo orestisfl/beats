@@ -24,8 +24,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	loginp "github.com/elastic/beats/v7/filebeat/input/filestream/internal/input-logfile"
-	input "github.com/elastic/beats/v7/filebeat/input/v2"
+	loginp "github.com/elastic/beats/v8/filebeat/input/filestream/internal/input-logfile"
+	input "github.com/elastic/beats/v8/filebeat/input/v2"
 	"github.com/elastic/elastic-agent-libs/logp"
 )
 

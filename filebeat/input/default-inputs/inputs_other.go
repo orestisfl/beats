@@ -20,8 +20,8 @@
 package inputs
 
 import (
-	v2 "github.com/elastic/beats/v7/filebeat/input/v2"
-	"github.com/elastic/beats/v7/libbeat/beat"
+	v2 "github.com/elastic/beats/v8/filebeat/input/v2"
+	"github.com/elastic/beats/v8/libbeat/beat"
 	"github.com/elastic/elastic-agent-libs/logp"
 )
 

@@ -22,9 +22,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/elastic/beats/v7/heartbeat/ecserr"
-	"github.com/elastic/beats/v7/heartbeat/reason"
-	"github.com/elastic/beats/v7/libbeat/common/match"
+	"github.com/elastic/beats/v8/heartbeat/ecserr"
+	"github.com/elastic/beats/v8/heartbeat/reason"
+	"github.com/elastic/beats/v8/libbeat/common/match"
 )
 
 const cfgPositive = "positive"

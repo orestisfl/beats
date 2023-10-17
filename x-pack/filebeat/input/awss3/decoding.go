@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/elastic/beats/v7/x-pack/libbeat/reader/parquet"
+	"github.com/elastic/beats/v8/x-pack/libbeat/reader/parquet"
 )
 
 // decoder is an interface for decoding data from an io reader.

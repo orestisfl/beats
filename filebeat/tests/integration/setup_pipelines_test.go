@@ -30,7 +30,7 @@ import (
 	cp "github.com/otiai10/copy"
 	"github.com/stretchr/testify/require"
 
-	"github.com/elastic/beats/v7/libbeat/tests/integration"
+	"github.com/elastic/beats/v8/libbeat/tests/integration"
 )
 
 func TestSetupNoModules(t *testing.T) {

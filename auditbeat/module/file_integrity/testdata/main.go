@@ -20,7 +20,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/elastic/beats/v7/auditbeat/module/file_integrity/testdata/b"
+	"github.com/elastic/beats/v8/auditbeat/module/file_integrity/testdata/b"
 )
 
 func main() {

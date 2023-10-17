@@ -10,10 +10,10 @@ import (
 	"net/url"
 	"time"
 
-	v2 "github.com/elastic/beats/v7/filebeat/input/v2"
-	cursor "github.com/elastic/beats/v7/filebeat/input/v2/input-cursor"
+	v2 "github.com/elastic/beats/v8/filebeat/input/v2"
+	cursor "github.com/elastic/beats/v8/filebeat/input/v2/input-cursor"
 
-	"github.com/elastic/beats/v7/libbeat/feature"
+	"github.com/elastic/beats/v8/libbeat/feature"
 	conf "github.com/elastic/elastic-agent-libs/config"
 	"github.com/elastic/elastic-agent-libs/logp"
 )

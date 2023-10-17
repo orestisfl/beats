@@ -21,7 +21,7 @@ import (
 	"github.com/golang/protobuf/proto" //nolint:staticcheck // SA1019 dependency uses deprecated package
 	"github.com/stretchr/testify/assert"
 
-	"github.com/elastic/beats/v7/libbeat/beat"
+	"github.com/elastic/beats/v8/libbeat/beat"
 	"github.com/elastic/elastic-agent-libs/mapstr"
 )
 

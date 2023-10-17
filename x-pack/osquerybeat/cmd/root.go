@@ -7,14 +7,14 @@ package cmd
 import (
 	"fmt"
 
-	cmd "github.com/elastic/beats/v7/libbeat/cmd"
-	"github.com/elastic/beats/v7/libbeat/cmd/instance"
-	"github.com/elastic/beats/v7/libbeat/common/cli"
-	"github.com/elastic/beats/v7/libbeat/common/reload"
-	"github.com/elastic/beats/v7/libbeat/ecs"
-	"github.com/elastic/beats/v7/libbeat/processors"
-	"github.com/elastic/beats/v7/libbeat/publisher/processing"
-	"github.com/elastic/beats/v7/x-pack/libbeat/management"
+	cmd "github.com/elastic/beats/v8/libbeat/cmd"
+	"github.com/elastic/beats/v8/libbeat/cmd/instance"
+	"github.com/elastic/beats/v8/libbeat/common/cli"
+	"github.com/elastic/beats/v8/libbeat/common/reload"
+	"github.com/elastic/beats/v8/libbeat/ecs"
+	"github.com/elastic/beats/v8/libbeat/processors"
+	"github.com/elastic/beats/v8/libbeat/publisher/processing"
+	"github.com/elastic/beats/v8/x-pack/libbeat/management"
 	"github.com/elastic/elastic-agent-client/v7/pkg/client"
 	"github.com/elastic/elastic-agent-client/v7/pkg/proto"
 	"github.com/elastic/elastic-agent-libs/logp"
@@ -22,10 +22,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	_ "github.com/elastic/beats/v7/x-pack/libbeat/include"
-	"github.com/elastic/beats/v7/x-pack/osquerybeat/beater"
-	"github.com/elastic/beats/v7/x-pack/osquerybeat/internal/config"
-	"github.com/elastic/beats/v7/x-pack/osquerybeat/internal/install"
+	_ "github.com/elastic/beats/v8/x-pack/libbeat/include"
+	"github.com/elastic/beats/v8/x-pack/osquerybeat/beater"
+	"github.com/elastic/beats/v8/x-pack/osquerybeat/internal/config"
+	"github.com/elastic/beats/v8/x-pack/osquerybeat/internal/install"
 )
 
 // Name of this beat

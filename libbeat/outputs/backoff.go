@@ -22,8 +22,8 @@ import (
 	"errors"
 	"time"
 
-	"github.com/elastic/beats/v7/libbeat/common/backoff"
-	"github.com/elastic/beats/v7/libbeat/publisher"
+	"github.com/elastic/beats/v8/libbeat/common/backoff"
+	"github.com/elastic/beats/v8/libbeat/publisher"
 	"github.com/elastic/elastic-agent-libs/testing"
 )
 

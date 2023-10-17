@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/elastic/beats/v7/x-pack/osquerybeat/internal/ecs"
+	"github.com/elastic/beats/v8/x-pack/osquerybeat/internal/ecs"
 )
 
 var (

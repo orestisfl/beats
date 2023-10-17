@@ -10,8 +10,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/elastic/beats/v7/libbeat/beat"
-	_ "github.com/elastic/beats/v7/libbeat/processors/actions"
+	"github.com/elastic/beats/v8/libbeat/beat"
+	_ "github.com/elastic/beats/v8/libbeat/processors/actions"
 	conf "github.com/elastic/elastic-agent-libs/config"
 	"github.com/elastic/elastic-agent-libs/mapstr"
 )

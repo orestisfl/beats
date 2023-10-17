@@ -13,20 +13,20 @@ import (
 	"github.com/magefile/mage/mg"
 	"go.uber.org/multierr"
 
-	auditbeat "github.com/elastic/beats/v7/auditbeat/scripts/mage"
-	devtools "github.com/elastic/beats/v7/dev-tools/mage"
-	"github.com/elastic/beats/v7/dev-tools/mage/target/build"
+	auditbeat "github.com/elastic/beats/v8/auditbeat/scripts/mage"
+	devtools "github.com/elastic/beats/v8/dev-tools/mage"
+	"github.com/elastic/beats/v8/dev-tools/mage/target/build"
 
 	//mage:import
-	"github.com/elastic/beats/v7/dev-tools/mage/target/common"
+	"github.com/elastic/beats/v8/dev-tools/mage/target/common"
 	//mage:import
-	"github.com/elastic/beats/v7/dev-tools/mage/target/unittest"
+	"github.com/elastic/beats/v8/dev-tools/mage/target/unittest"
 	//mage:import
-	_ "github.com/elastic/beats/v7/dev-tools/mage/target/integtest"
+	_ "github.com/elastic/beats/v8/dev-tools/mage/target/integtest"
 	//mage:import
-	_ "github.com/elastic/beats/v7/dev-tools/mage/target/integtest/docker"
+	_ "github.com/elastic/beats/v8/dev-tools/mage/target/integtest/docker"
 	//mage:import
-	_ "github.com/elastic/beats/v7/dev-tools/mage/target/test"
+	_ "github.com/elastic/beats/v8/dev-tools/mage/target/test"
 )
 
 func init() {

@@ -16,10 +16,10 @@ import (
 	"github.com/awslabs/goformation/v4/cloudformation/logs"
 	"github.com/awslabs/goformation/v4/cloudformation/tags"
 
-	"github.com/elastic/beats/v7/x-pack/functionbeat/function/provider"
-	"github.com/elastic/beats/v7/x-pack/functionbeat/manager/core"
-	"github.com/elastic/beats/v7/x-pack/functionbeat/manager/core/bundle"
-	fnaws "github.com/elastic/beats/v7/x-pack/functionbeat/provider/aws/aws"
+	"github.com/elastic/beats/v8/x-pack/functionbeat/function/provider"
+	"github.com/elastic/beats/v8/x-pack/functionbeat/manager/core"
+	"github.com/elastic/beats/v8/x-pack/functionbeat/manager/core/bundle"
+	fnaws "github.com/elastic/beats/v8/x-pack/functionbeat/provider/aws/aws"
 	conf "github.com/elastic/elastic-agent-libs/config"
 	"github.com/elastic/elastic-agent-libs/logp"
 )

@@ -27,12 +27,12 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	hbconfig "github.com/elastic/beats/v7/heartbeat/config"
-	"github.com/elastic/beats/v7/libbeat/beat"
-	"github.com/elastic/beats/v7/libbeat/beat/events"
-	"github.com/elastic/beats/v7/libbeat/common/fmtstr"
-	"github.com/elastic/beats/v7/libbeat/processors/add_data_stream"
-	"github.com/elastic/beats/v7/libbeat/processors/util"
+	hbconfig "github.com/elastic/beats/v8/heartbeat/config"
+	"github.com/elastic/beats/v8/libbeat/beat"
+	"github.com/elastic/beats/v8/libbeat/beat/events"
+	"github.com/elastic/beats/v8/libbeat/common/fmtstr"
+	"github.com/elastic/beats/v8/libbeat/processors/add_data_stream"
+	"github.com/elastic/beats/v8/libbeat/processors/util"
 )
 
 var binfo = beat.Info{

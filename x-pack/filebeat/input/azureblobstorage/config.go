@@ -7,7 +7,7 @@ package azureblobstorage
 import (
 	"time"
 
-	"github.com/elastic/beats/v7/libbeat/common/match"
+	"github.com/elastic/beats/v8/libbeat/common/match"
 )
 
 // MaxWorkers, Poll, PollInterval, FileSelectors, TimeStampEpoch & ExpandEventListFromField can

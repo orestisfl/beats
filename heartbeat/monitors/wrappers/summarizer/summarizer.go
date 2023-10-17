@@ -21,11 +21,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/elastic/beats/v7/heartbeat/monitors/jobs"
-	"github.com/elastic/beats/v7/heartbeat/monitors/logger"
-	"github.com/elastic/beats/v7/heartbeat/monitors/stdfields"
-	"github.com/elastic/beats/v7/heartbeat/monitors/wrappers/monitorstate"
-	"github.com/elastic/beats/v7/libbeat/beat"
+	"github.com/elastic/beats/v8/heartbeat/monitors/jobs"
+	"github.com/elastic/beats/v8/heartbeat/monitors/logger"
+	"github.com/elastic/beats/v8/heartbeat/monitors/stdfields"
+	"github.com/elastic/beats/v8/heartbeat/monitors/wrappers/monitorstate"
+	"github.com/elastic/beats/v8/libbeat/beat"
 )
 
 // Summarizer produces summary events (with summary.* and other asssociated fields).

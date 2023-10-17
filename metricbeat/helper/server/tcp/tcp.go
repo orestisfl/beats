@@ -22,8 +22,8 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/elastic/beats/v7/metricbeat/helper/server"
-	"github.com/elastic/beats/v7/metricbeat/mb"
+	"github.com/elastic/beats/v8/metricbeat/helper/server"
+	"github.com/elastic/beats/v8/metricbeat/mb"
 	"github.com/elastic/elastic-agent-libs/logp"
 	"github.com/elastic/elastic-agent-libs/mapstr"
 )

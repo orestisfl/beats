@@ -24,8 +24,8 @@ import (
 	"strings"
 	"time"
 
-	libxml "github.com/elastic/beats/v7/libbeat/common/encoding/xml"
-	"github.com/elastic/beats/v7/winlogbeat/sys"
+	libxml "github.com/elastic/beats/v8/libbeat/common/encoding/xml"
+	"github.com/elastic/beats/v8/winlogbeat/sys"
 	"github.com/elastic/elastic-agent-libs/logp"
 	"github.com/elastic/elastic-agent-libs/mapstr"
 )

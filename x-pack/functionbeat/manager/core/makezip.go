@@ -9,10 +9,10 @@ import (
 
 	yaml "gopkg.in/yaml.v2"
 
-	"github.com/elastic/beats/v7/libbeat/cfgfile"
-	"github.com/elastic/beats/v7/libbeat/cmd/instance"
-	"github.com/elastic/beats/v7/x-pack/functionbeat/config"
-	"github.com/elastic/beats/v7/x-pack/functionbeat/manager/core/bundle"
+	"github.com/elastic/beats/v8/libbeat/cfgfile"
+	"github.com/elastic/beats/v8/libbeat/cmd/instance"
+	"github.com/elastic/beats/v8/x-pack/functionbeat/config"
+	"github.com/elastic/beats/v8/x-pack/functionbeat/manager/core/bundle"
 	"github.com/elastic/elastic-agent-libs/keystore"
 )
 

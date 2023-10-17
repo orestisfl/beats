@@ -7,7 +7,7 @@ package entityanalytics
 import (
 	"errors"
 
-	"github.com/elastic/beats/v7/x-pack/filebeat/input/entityanalytics/provider"
+	"github.com/elastic/beats/v8/x-pack/filebeat/input/entityanalytics/provider"
 )
 
 var (

@@ -20,8 +20,8 @@ package summarizer
 import (
 	"time"
 
-	"github.com/elastic/beats/v7/heartbeat/look"
-	"github.com/elastic/beats/v7/libbeat/beat"
+	"github.com/elastic/beats/v8/heartbeat/look"
+	"github.com/elastic/beats/v8/libbeat/beat"
 )
 
 // LightweightDurationPlugin handles the logic for writing the `monitor.duration.us` field

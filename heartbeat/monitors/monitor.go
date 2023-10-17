@@ -21,19 +21,19 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/elastic/beats/v7/heartbeat/monitors/wrappers/monitorstate"
+	"github.com/elastic/beats/v8/heartbeat/monitors/wrappers/monitorstate"
 
 	"github.com/mitchellh/hashstructure"
 
 	conf "github.com/elastic/elastic-agent-libs/config"
 	"github.com/elastic/elastic-agent-libs/logp"
 
-	"github.com/elastic/beats/v7/heartbeat/monitors/jobs"
-	"github.com/elastic/beats/v7/heartbeat/monitors/plugin"
-	"github.com/elastic/beats/v7/heartbeat/monitors/stdfields"
-	"github.com/elastic/beats/v7/heartbeat/monitors/wrappers"
-	"github.com/elastic/beats/v7/heartbeat/scheduler"
-	"github.com/elastic/beats/v7/libbeat/beat"
+	"github.com/elastic/beats/v8/heartbeat/monitors/jobs"
+	"github.com/elastic/beats/v8/heartbeat/monitors/plugin"
+	"github.com/elastic/beats/v8/heartbeat/monitors/stdfields"
+	"github.com/elastic/beats/v8/heartbeat/monitors/wrappers"
+	"github.com/elastic/beats/v8/heartbeat/scheduler"
+	"github.com/elastic/beats/v8/libbeat/beat"
 )
 
 // ErrMonitorDisabled is returned when the monitor plugin is marked as disabled.

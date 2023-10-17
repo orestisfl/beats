@@ -21,8 +21,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/elastic/beats/v7/metricbeat/mb"
-	"github.com/elastic/beats/v7/metricbeat/module/vsphere"
+	"github.com/elastic/beats/v8/metricbeat/mb"
+	"github.com/elastic/beats/v8/metricbeat/module/vsphere"
 	"github.com/elastic/elastic-agent-libs/mapstr"
 
 	"github.com/vmware/govmomi"

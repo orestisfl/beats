@@ -22,7 +22,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/elastic/beats/v7/libbeat/common/file"
+	"github.com/elastic/beats/v8/libbeat/common/file"
 	"github.com/elastic/elastic-agent-libs/mapstr"
 )
 

@@ -33,7 +33,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/elastic/beats/v7/heartbeat/look"
+	"github.com/elastic/beats/v8/heartbeat/look"
 )
 
 // Tests for the non-cert fields

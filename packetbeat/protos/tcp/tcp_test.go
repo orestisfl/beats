@@ -27,9 +27,9 @@ import (
 
 	"github.com/google/gopacket/layers"
 
-	"github.com/elastic/beats/v7/libbeat/common"
-	"github.com/elastic/beats/v7/packetbeat/procs"
-	"github.com/elastic/beats/v7/packetbeat/protos"
+	"github.com/elastic/beats/v8/libbeat/common"
+	"github.com/elastic/beats/v8/packetbeat/procs"
+	"github.com/elastic/beats/v8/packetbeat/protos"
 	conf "github.com/elastic/elastic-agent-libs/config"
 
 	"github.com/stretchr/testify/assert"

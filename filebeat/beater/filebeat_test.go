@@ -22,7 +22,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/elastic/beats/v7/filebeat/config"
+	"github.com/elastic/beats/v8/filebeat/config"
 	conf "github.com/elastic/elastic-agent-libs/config"
 
 	"github.com/stretchr/testify/require"

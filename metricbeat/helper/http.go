@@ -26,9 +26,9 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/elastic/beats/v7/libbeat/version"
-	"github.com/elastic/beats/v7/metricbeat/helper/dialer"
-	"github.com/elastic/beats/v7/metricbeat/mb"
+	"github.com/elastic/beats/v8/libbeat/version"
+	"github.com/elastic/beats/v8/metricbeat/helper/dialer"
+	"github.com/elastic/beats/v8/metricbeat/mb"
 	"github.com/elastic/elastic-agent-libs/transport/httpcommon"
 	"github.com/elastic/elastic-agent-libs/useragent"
 )

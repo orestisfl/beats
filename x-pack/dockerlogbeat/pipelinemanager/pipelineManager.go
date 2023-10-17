@@ -14,7 +14,7 @@ import (
 
 	"github.com/mitchellh/hashstructure"
 
-	"github.com/elastic/beats/v7/x-pack/dockerlogbeat/pipereader"
+	"github.com/elastic/beats/v8/x-pack/dockerlogbeat/pipereader"
 	"github.com/elastic/elastic-agent-libs/config"
 
 	"github.com/docker/docker/api/types/plugins/logdriver"
@@ -23,7 +23,7 @@ import (
 
 	protoio "github.com/gogo/protobuf/io"
 
-	"github.com/elastic/beats/v7/libbeat/publisher/pipeline"
+	"github.com/elastic/beats/v8/libbeat/publisher/pipeline"
 	"github.com/elastic/elastic-agent-libs/logp"
 )
 

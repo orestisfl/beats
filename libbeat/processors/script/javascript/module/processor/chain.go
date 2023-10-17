@@ -23,9 +23,9 @@ import (
 
 	"github.com/dop251/goja"
 
-	"github.com/elastic/beats/v7/libbeat/beat"
-	"github.com/elastic/beats/v7/libbeat/processors"
-	"github.com/elastic/beats/v7/libbeat/processors/script/javascript"
+	"github.com/elastic/beats/v8/libbeat/beat"
+	"github.com/elastic/beats/v8/libbeat/processors"
+	"github.com/elastic/beats/v8/libbeat/processors/script/javascript"
 	"github.com/elastic/elastic-agent-libs/config"
 )
 

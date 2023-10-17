@@ -20,8 +20,8 @@ package logstash
 import (
 	"strings"
 
-	"github.com/elastic/beats/v7/libbeat/beat"
-	"github.com/elastic/beats/v7/libbeat/outputs/codec/json"
+	"github.com/elastic/beats/v8/libbeat/beat"
+	"github.com/elastic/beats/v8/libbeat/outputs/codec/json"
 	"github.com/elastic/elastic-agent-libs/logp"
 )
 
