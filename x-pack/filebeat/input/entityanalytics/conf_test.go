@@ -9,7 +9,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/elastic/beats/v7/x-pack/filebeat/input/entityanalytics/provider/azuread"
+	"github.com/elastic/beats/v8/x-pack/filebeat/input/entityanalytics/provider/azuread"
 )
 
 func TestConf_Validate(t *testing.T) {

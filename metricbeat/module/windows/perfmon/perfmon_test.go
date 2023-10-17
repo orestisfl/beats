@@ -24,11 +24,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/elastic/beats/v7/metricbeat/helper/windows/pdh"
+	"github.com/elastic/beats/v8/metricbeat/helper/windows/pdh"
 
 	"github.com/stretchr/testify/assert"
 
-	mbtest "github.com/elastic/beats/v7/metricbeat/mb/testing"
+	mbtest "github.com/elastic/beats/v8/metricbeat/mb/testing"
 )
 
 const processorTimeCounter = `\Processor Information(_Total)\% Processor Time`

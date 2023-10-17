@@ -7,14 +7,14 @@ package cmd
 import (
 	"fmt"
 
-	heartbeatCmd "github.com/elastic/beats/v7/heartbeat/cmd"
-	"github.com/elastic/beats/v7/libbeat/cmd"
-	"github.com/elastic/beats/v7/libbeat/common/reload"
+	heartbeatCmd "github.com/elastic/beats/v8/heartbeat/cmd"
+	"github.com/elastic/beats/v8/libbeat/cmd"
+	"github.com/elastic/beats/v8/libbeat/common/reload"
 	"github.com/elastic/elastic-agent-client/v7/pkg/client"
 	"github.com/elastic/elastic-agent-client/v7/pkg/proto"
 
-	_ "github.com/elastic/beats/v7/x-pack/libbeat/include"
-	"github.com/elastic/beats/v7/x-pack/libbeat/management"
+	_ "github.com/elastic/beats/v8/x-pack/libbeat/include"
+	"github.com/elastic/beats/v8/x-pack/libbeat/management"
 )
 
 // RootCmd to handle beats cli

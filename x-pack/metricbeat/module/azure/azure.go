@@ -7,7 +7,7 @@ package azure
 import (
 	"fmt"
 
-	"github.com/elastic/beats/v7/metricbeat/mb"
+	"github.com/elastic/beats/v8/metricbeat/mb"
 )
 
 func init() {

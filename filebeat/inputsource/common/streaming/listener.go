@@ -27,8 +27,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/elastic/beats/v7/filebeat/inputsource"
-	"github.com/elastic/beats/v7/libbeat/common/atomic"
+	"github.com/elastic/beats/v8/filebeat/inputsource"
+	"github.com/elastic/beats/v8/libbeat/common/atomic"
 	"github.com/elastic/elastic-agent-libs/logp"
 	"github.com/elastic/go-concert/ctxtool"
 )

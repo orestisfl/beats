@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/elastic/beats/v7/libbeat/common/kafka"
+	"github.com/elastic/beats/v8/libbeat/common/kafka"
 	"github.com/elastic/elastic-agent-libs/transport/tlscommon"
 )
 

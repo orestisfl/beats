@@ -10,9 +10,9 @@ import (
 	conf "github.com/elastic/elastic-agent-libs/config"
 	"github.com/elastic/go-concert/unison"
 
-	v2 "github.com/elastic/beats/v7/filebeat/input/v2"
-	inputcursor "github.com/elastic/beats/v7/filebeat/input/v2/input-cursor"
-	stateless "github.com/elastic/beats/v7/filebeat/input/v2/input-stateless"
+	v2 "github.com/elastic/beats/v8/filebeat/input/v2"
+	inputcursor "github.com/elastic/beats/v8/filebeat/input/v2/input-cursor"
+	stateless "github.com/elastic/beats/v8/filebeat/input/v2/input-stateless"
 	"github.com/elastic/elastic-agent-libs/logp"
 )
 

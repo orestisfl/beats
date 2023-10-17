@@ -24,9 +24,9 @@ import (
 
 	"golang.org/x/net/netutil"
 
-	"github.com/elastic/beats/v7/filebeat/inputsource"
-	"github.com/elastic/beats/v7/filebeat/inputsource/common/dgram"
-	"github.com/elastic/beats/v7/filebeat/inputsource/common/streaming"
+	"github.com/elastic/beats/v8/filebeat/inputsource"
+	"github.com/elastic/beats/v8/filebeat/inputsource/common/dgram"
+	"github.com/elastic/beats/v8/filebeat/inputsource/common/streaming"
 	"github.com/elastic/elastic-agent-libs/logp"
 )
 

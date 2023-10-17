@@ -20,7 +20,7 @@ package management
 import (
 	"sync"
 
-	"github.com/elastic/beats/v7/libbeat/common/reload"
+	"github.com/elastic/beats/v8/libbeat/common/reload"
 	"github.com/elastic/elastic-agent-client/v7/pkg/client"
 	"github.com/elastic/elastic-agent-libs/config"
 	"github.com/elastic/elastic-agent-libs/logp"

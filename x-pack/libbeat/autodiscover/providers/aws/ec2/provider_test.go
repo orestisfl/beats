@@ -13,8 +13,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	awsauto "github.com/elastic/beats/v7/x-pack/libbeat/autodiscover/providers/aws"
-	"github.com/elastic/beats/v7/x-pack/libbeat/autodiscover/providers/aws/test"
+	awsauto "github.com/elastic/beats/v8/x-pack/libbeat/autodiscover/providers/aws"
+	"github.com/elastic/beats/v8/x-pack/libbeat/autodiscover/providers/aws/test"
 	"github.com/elastic/elastic-agent-autodiscover/bus"
 	"github.com/elastic/elastic-agent-libs/keystore"
 	"github.com/elastic/elastic-agent-libs/logp"

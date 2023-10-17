@@ -7,5 +7,5 @@
 package main
 
 import (
-	_ "github.com/elastic/beats/v7/x-pack/heartbeat/monitors/browser"
+	_ "github.com/elastic/beats/v8/x-pack/heartbeat/monitors/browser"
 )

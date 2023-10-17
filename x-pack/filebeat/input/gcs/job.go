@@ -20,8 +20,8 @@ import (
 
 	"cloud.google.com/go/storage"
 
-	cursor "github.com/elastic/beats/v7/filebeat/input/v2/input-cursor"
-	"github.com/elastic/beats/v7/libbeat/beat"
+	cursor "github.com/elastic/beats/v8/filebeat/input/v2/input-cursor"
+	"github.com/elastic/beats/v8/libbeat/beat"
 	"github.com/elastic/elastic-agent-libs/logp"
 	"github.com/elastic/elastic-agent-libs/mapstr"
 )

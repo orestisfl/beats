@@ -261,8 +261,8 @@ var want = map[string]mapstr.M{
 			"imports_names_entropy":     4.2079021689106195,
 			"imports_names_var_entropy": 0.0014785066641319837,
 			"go_imports": []string{
-				"github.com/elastic/beats/v7/auditbeat/module/file_integrity/testdata/b.Used",
-				"github.com/elastic/beats/v7/auditbeat/module/file_integrity/testdata/b.hash",
+				"github.com/elastic/beats/v8/auditbeat/module/file_integrity/testdata/b.Used",
+				"github.com/elastic/beats/v8/auditbeat/module/file_integrity/testdata/b.hash",
 			},
 		},
 	},
@@ -299,8 +299,8 @@ var want = map[string]mapstr.M{
 			"import_hash":    "d41d8cd98f00b204e9800998ecf8427e",
 			"go_import_hash": "10bddcb4cee42080f76c88d9ff964491",
 			"go_imports": []string{
-				"github.com/elastic/beats/v7/auditbeat/module/file_integrity/testdata/b.Used",
-				"github.com/elastic/beats/v7/auditbeat/module/file_integrity/testdata/b.hash",
+				"github.com/elastic/beats/v8/auditbeat/module/file_integrity/testdata/b.Used",
+				"github.com/elastic/beats/v8/auditbeat/module/file_integrity/testdata/b.hash",
 			},
 		},
 	},
@@ -375,8 +375,8 @@ var want = map[string]mapstr.M{
 				"_write",
 			},
 			"go_imports": []string{
-				"github.com/elastic/beats/v7/auditbeat/module/file_integrity/testdata/b.Used",
-				"github.com/elastic/beats/v7/auditbeat/module/file_integrity/testdata/b.hash",
+				"github.com/elastic/beats/v8/auditbeat/module/file_integrity/testdata/b.Used",
+				"github.com/elastic/beats/v8/auditbeat/module/file_integrity/testdata/b.hash",
 			},
 			"sections": []objSection{
 				{Name: strPtr("__text"), Size: uint64Ptr(0x8be36), Entropy: float64Ptr(6.16), VarEntropy: float64Ptr(0.0001)},

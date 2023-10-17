@@ -22,11 +22,11 @@ import (
 	"github.com/gofrs/uuid"
 	"github.com/joeshaw/multierror"
 
-	"github.com/elastic/beats/v7/auditbeat/datastore"
-	"github.com/elastic/beats/v7/libbeat/common/cfgwarn"
-	"github.com/elastic/beats/v7/metricbeat/mb"
-	"github.com/elastic/beats/v7/x-pack/auditbeat/cache"
-	"github.com/elastic/beats/v7/x-pack/auditbeat/module/system"
+	"github.com/elastic/beats/v8/auditbeat/datastore"
+	"github.com/elastic/beats/v8/libbeat/common/cfgwarn"
+	"github.com/elastic/beats/v8/metricbeat/mb"
+	"github.com/elastic/beats/v8/x-pack/auditbeat/cache"
+	"github.com/elastic/beats/v8/x-pack/auditbeat/module/system"
 	"github.com/elastic/elastic-agent-libs/logp"
 	"github.com/elastic/elastic-agent-libs/mapstr"
 )

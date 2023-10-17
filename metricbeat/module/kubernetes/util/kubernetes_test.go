@@ -34,7 +34,7 @@ import (
 	"github.com/elastic/elastic-agent-libs/logp"
 	"github.com/elastic/elastic-agent-libs/mapstr"
 
-	kubernetes2 "github.com/elastic/beats/v7/libbeat/autodiscover/providers/kubernetes"
+	kubernetes2 "github.com/elastic/beats/v8/libbeat/autodiscover/providers/kubernetes"
 )
 
 var (

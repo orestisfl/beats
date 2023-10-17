@@ -22,8 +22,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/elastic/beats/v7/filebeat/harvester"
-	"github.com/elastic/beats/v7/filebeat/input/file"
+	"github.com/elastic/beats/v8/filebeat/harvester"
+	"github.com/elastic/beats/v8/filebeat/input/file"
 	"github.com/elastic/elastic-agent-libs/logp"
 )
 

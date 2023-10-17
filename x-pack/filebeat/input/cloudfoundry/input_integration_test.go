@@ -16,10 +16,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	v2 "github.com/elastic/beats/v7/filebeat/input/v2"
-	"github.com/elastic/beats/v7/libbeat/beat"
-	pubtest "github.com/elastic/beats/v7/libbeat/publisher/testing"
-	cftest "github.com/elastic/beats/v7/x-pack/libbeat/common/cloudfoundry/test"
+	v2 "github.com/elastic/beats/v8/filebeat/input/v2"
+	"github.com/elastic/beats/v8/libbeat/beat"
+	pubtest "github.com/elastic/beats/v8/libbeat/publisher/testing"
+	cftest "github.com/elastic/beats/v8/x-pack/libbeat/common/cloudfoundry/test"
 	"github.com/elastic/elastic-agent-libs/logp"
 )
 

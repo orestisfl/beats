@@ -13,7 +13,7 @@ import (
 	"cloud.google.com/go/storage"
 	"google.golang.org/api/iterator"
 
-	cursor "github.com/elastic/beats/v7/filebeat/input/v2/input-cursor"
+	cursor "github.com/elastic/beats/v8/filebeat/input/v2/input-cursor"
 	"github.com/elastic/elastic-agent-libs/logp"
 	"github.com/elastic/go-concert/timed"
 )

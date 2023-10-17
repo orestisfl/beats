@@ -21,8 +21,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/elastic/beats/v7/metricbeat/mb"
-	"github.com/elastic/beats/v7/metricbeat/module/postgresql"
+	"github.com/elastic/beats/v8/metricbeat/mb"
+	"github.com/elastic/beats/v8/metricbeat/module/postgresql"
 )
 
 // init registers the MetricSet with the central registry.

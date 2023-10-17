@@ -20,8 +20,8 @@ package processors
 import (
 	"errors"
 
-	"github.com/elastic/beats/v7/libbeat/beat"
-	p "github.com/elastic/beats/v7/libbeat/plugin"
+	"github.com/elastic/beats/v8/libbeat/beat"
+	p "github.com/elastic/beats/v8/libbeat/plugin"
 	"github.com/elastic/elastic-agent-libs/config"
 	"github.com/elastic/elastic-agent-libs/logp"
 )

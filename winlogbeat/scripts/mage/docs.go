@@ -25,7 +25,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/elastic/beats/v7/dev-tools/mage"
+	"github.com/elastic/beats/v8/dev-tools/mage"
 )
 
 const moduleDocsGlob = "module/*/_meta/docs.asciidoc"

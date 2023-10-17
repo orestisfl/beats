@@ -11,10 +11,10 @@ import (
 	"cloud.google.com/go/storage"
 	gax "github.com/googleapis/gax-go/v2"
 
-	v2 "github.com/elastic/beats/v7/filebeat/input/v2"
-	cursor "github.com/elastic/beats/v7/filebeat/input/v2/input-cursor"
-	stateless "github.com/elastic/beats/v7/filebeat/input/v2/input-stateless"
-	"github.com/elastic/beats/v7/libbeat/beat"
+	v2 "github.com/elastic/beats/v8/filebeat/input/v2"
+	cursor "github.com/elastic/beats/v8/filebeat/input/v2/input-cursor"
+	stateless "github.com/elastic/beats/v8/filebeat/input/v2/input-stateless"
+	"github.com/elastic/beats/v8/libbeat/beat"
 )
 
 type statelessInput struct {

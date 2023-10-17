@@ -14,8 +14,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/elastic/beats/v7/libbeat/monitoring/inputmon"
-	beattest "github.com/elastic/beats/v7/libbeat/publisher/testing"
+	"github.com/elastic/beats/v8/libbeat/monitoring/inputmon"
+	beattest "github.com/elastic/beats/v8/libbeat/publisher/testing"
 	conf "github.com/elastic/elastic-agent-libs/config"
 	"github.com/elastic/elastic-agent-libs/monitoring"
 )

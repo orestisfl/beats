@@ -24,11 +24,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/elastic/beats/v7/libbeat/beat"
-	"github.com/elastic/beats/v7/libbeat/common"
-	"github.com/elastic/beats/v7/libbeat/common/flowhash"
-	"github.com/elastic/beats/v7/libbeat/conditions"
-	"github.com/elastic/beats/v7/libbeat/ecs"
+	"github.com/elastic/beats/v8/libbeat/beat"
+	"github.com/elastic/beats/v8/libbeat/common"
+	"github.com/elastic/beats/v8/libbeat/common/flowhash"
+	"github.com/elastic/beats/v8/libbeat/conditions"
+	"github.com/elastic/beats/v8/libbeat/ecs"
 	"github.com/elastic/elastic-agent-libs/mapstr"
 )
 

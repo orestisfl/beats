@@ -24,8 +24,8 @@ import (
 	p "path"
 	"strings"
 
-	"github.com/elastic/beats/v7/metricbeat/helper/dialer"
-	"github.com/elastic/beats/v7/metricbeat/mb"
+	"github.com/elastic/beats/v8/metricbeat/helper/dialer"
+	"github.com/elastic/beats/v8/metricbeat/mb"
 )
 
 // URLHostParserBuilder builds a tailored HostParser for used with host strings

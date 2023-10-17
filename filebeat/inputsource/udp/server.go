@@ -22,8 +22,8 @@ import (
 
 	"github.com/dustin/go-humanize"
 
-	"github.com/elastic/beats/v7/filebeat/inputsource"
-	"github.com/elastic/beats/v7/filebeat/inputsource/common/dgram"
+	"github.com/elastic/beats/v8/filebeat/inputsource"
+	"github.com/elastic/beats/v8/filebeat/inputsource/common/dgram"
 	"github.com/elastic/elastic-agent-libs/logp"
 )
 

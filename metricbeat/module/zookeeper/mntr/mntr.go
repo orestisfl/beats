@@ -46,9 +46,9 @@ package mntr
 import (
 	"fmt"
 
-	"github.com/elastic/beats/v7/metricbeat/mb"
-	"github.com/elastic/beats/v7/metricbeat/mb/parse"
-	"github.com/elastic/beats/v7/metricbeat/module/zookeeper"
+	"github.com/elastic/beats/v8/metricbeat/mb"
+	"github.com/elastic/beats/v8/metricbeat/mb/parse"
+	"github.com/elastic/beats/v8/metricbeat/module/zookeeper"
 )
 
 func init() {

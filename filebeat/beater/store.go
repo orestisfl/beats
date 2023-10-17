@@ -20,10 +20,10 @@ package beater
 import (
 	"time"
 
-	"github.com/elastic/beats/v7/filebeat/config"
-	"github.com/elastic/beats/v7/libbeat/beat"
-	"github.com/elastic/beats/v7/libbeat/statestore"
-	"github.com/elastic/beats/v7/libbeat/statestore/backend/memlog"
+	"github.com/elastic/beats/v8/filebeat/config"
+	"github.com/elastic/beats/v8/libbeat/beat"
+	"github.com/elastic/beats/v8/libbeat/statestore"
+	"github.com/elastic/beats/v8/libbeat/statestore/backend/memlog"
 	"github.com/elastic/elastic-agent-libs/logp"
 	"github.com/elastic/elastic-agent-libs/paths"
 )

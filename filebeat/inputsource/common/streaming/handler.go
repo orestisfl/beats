@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/elastic/beats/v7/filebeat/inputsource"
+	"github.com/elastic/beats/v8/filebeat/inputsource"
 	"github.com/elastic/elastic-agent-libs/logp"
 )
 

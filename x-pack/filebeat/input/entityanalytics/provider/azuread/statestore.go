@@ -13,9 +13,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/urso/sderr"
 
-	"github.com/elastic/beats/v7/x-pack/filebeat/input/entityanalytics/internal/collections"
-	"github.com/elastic/beats/v7/x-pack/filebeat/input/entityanalytics/internal/kvstore"
-	"github.com/elastic/beats/v7/x-pack/filebeat/input/entityanalytics/provider/azuread/fetcher"
+	"github.com/elastic/beats/v8/x-pack/filebeat/input/entityanalytics/internal/collections"
+	"github.com/elastic/beats/v8/x-pack/filebeat/input/entityanalytics/internal/kvstore"
+	"github.com/elastic/beats/v8/x-pack/filebeat/input/entityanalytics/provider/azuread/fetcher"
 )
 
 var (

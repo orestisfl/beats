@@ -25,8 +25,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/elastic/beats/v7/heartbeat/config"
-	batomic "github.com/elastic/beats/v7/libbeat/common/atomic"
+	"github.com/elastic/beats/v8/heartbeat/config"
+	batomic "github.com/elastic/beats/v8/libbeat/common/atomic"
 	"github.com/elastic/elastic-agent-libs/monitoring"
 )
 

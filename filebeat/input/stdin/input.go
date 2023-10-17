@@ -20,11 +20,11 @@ package stdin
 import (
 	"fmt"
 
-	"github.com/elastic/beats/v7/filebeat/channel"
-	"github.com/elastic/beats/v7/filebeat/harvester"
-	"github.com/elastic/beats/v7/filebeat/input"
-	"github.com/elastic/beats/v7/filebeat/input/file"
-	"github.com/elastic/beats/v7/filebeat/input/log"
+	"github.com/elastic/beats/v8/filebeat/channel"
+	"github.com/elastic/beats/v8/filebeat/harvester"
+	"github.com/elastic/beats/v8/filebeat/input"
+	"github.com/elastic/beats/v8/filebeat/input/file"
+	"github.com/elastic/beats/v8/filebeat/input/log"
 	conf "github.com/elastic/elastic-agent-libs/config"
 	"github.com/elastic/elastic-agent-libs/logp"
 )

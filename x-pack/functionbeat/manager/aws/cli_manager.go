@@ -17,11 +17,11 @@ import (
 	"github.com/awslabs/goformation/v4/cloudformation/iam"
 	"github.com/awslabs/goformation/v4/cloudformation/lambda"
 
-	"github.com/elastic/beats/v7/x-pack/functionbeat/function/provider"
-	"github.com/elastic/beats/v7/x-pack/functionbeat/manager/core"
-	"github.com/elastic/beats/v7/x-pack/functionbeat/manager/executor"
-	fnaws "github.com/elastic/beats/v7/x-pack/functionbeat/provider/aws/aws"
-	awscommon "github.com/elastic/beats/v7/x-pack/libbeat/common/aws"
+	"github.com/elastic/beats/v8/x-pack/functionbeat/function/provider"
+	"github.com/elastic/beats/v8/x-pack/functionbeat/manager/core"
+	"github.com/elastic/beats/v8/x-pack/functionbeat/manager/executor"
+	fnaws "github.com/elastic/beats/v8/x-pack/functionbeat/provider/aws/aws"
+	awscommon "github.com/elastic/beats/v8/x-pack/libbeat/common/aws"
 	conf "github.com/elastic/elastic-agent-libs/config"
 	"github.com/elastic/elastic-agent-libs/logp"
 )

@@ -10,7 +10,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/elastic/beats/v7/x-pack/functionbeat/function/provider"
+	"github.com/elastic/beats/v8/x-pack/functionbeat/function/provider"
 	"github.com/elastic/elastic-agent-libs/logp"
 )
 

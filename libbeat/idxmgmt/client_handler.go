@@ -18,8 +18,8 @@
 package idxmgmt
 
 import (
-	"github.com/elastic/beats/v7/libbeat/idxmgmt/ilm"
-	"github.com/elastic/beats/v7/libbeat/template"
+	"github.com/elastic/beats/v8/libbeat/idxmgmt/ilm"
+	"github.com/elastic/beats/v8/libbeat/template"
 	"github.com/elastic/elastic-agent-libs/version"
 )
 

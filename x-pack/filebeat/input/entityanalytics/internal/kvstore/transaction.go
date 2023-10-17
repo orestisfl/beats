@@ -11,7 +11,7 @@ import (
 
 	"go.etcd.io/bbolt"
 
-	"github.com/elastic/beats/v7/libbeat/common/atomic"
+	"github.com/elastic/beats/v8/libbeat/common/atomic"
 )
 
 var (

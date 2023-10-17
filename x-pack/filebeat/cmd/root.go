@@ -8,17 +8,17 @@ import (
 	"fmt"
 	"os"
 
-	fbcmd "github.com/elastic/beats/v7/filebeat/cmd"
-	cmd "github.com/elastic/beats/v7/libbeat/cmd"
-	"github.com/elastic/beats/v7/libbeat/processors"
-	"github.com/elastic/beats/v7/libbeat/publisher/processing"
-	"github.com/elastic/beats/v7/x-pack/libbeat/management"
+	fbcmd "github.com/elastic/beats/v8/filebeat/cmd"
+	cmd "github.com/elastic/beats/v8/libbeat/cmd"
+	"github.com/elastic/beats/v8/libbeat/processors"
+	"github.com/elastic/beats/v8/libbeat/publisher/processing"
+	"github.com/elastic/beats/v8/x-pack/libbeat/management"
 	"github.com/elastic/elastic-agent-libs/mapstr"
 
 	// Register the includes.
-	_ "github.com/elastic/beats/v7/x-pack/filebeat/include"
-	inputs "github.com/elastic/beats/v7/x-pack/filebeat/input/default-inputs"
-	_ "github.com/elastic/beats/v7/x-pack/libbeat/include"
+	_ "github.com/elastic/beats/v8/x-pack/filebeat/include"
+	inputs "github.com/elastic/beats/v8/x-pack/filebeat/input/default-inputs"
+	_ "github.com/elastic/beats/v8/x-pack/libbeat/include"
 )
 
 // Name is the name of the beat

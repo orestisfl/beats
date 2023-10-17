@@ -20,7 +20,7 @@ package consumergroup
 import (
 	"github.com/Shopify/sarama"
 
-	"github.com/elastic/beats/v7/metricbeat/module/kafka"
+	"github.com/elastic/beats/v8/metricbeat/module/kafka"
 	"github.com/elastic/elastic-agent-libs/logp"
 	"github.com/elastic/elastic-agent-libs/mapstr"
 )

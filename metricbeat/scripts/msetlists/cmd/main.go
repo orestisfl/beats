@@ -22,9 +22,9 @@ import (
 	"fmt"
 	"os"
 
-	_ "github.com/elastic/beats/v7/metricbeat/include"
-	"github.com/elastic/beats/v7/metricbeat/mb"
-	"github.com/elastic/beats/v7/metricbeat/scripts/msetlists"
+	_ "github.com/elastic/beats/v8/metricbeat/include"
+	"github.com/elastic/beats/v8/metricbeat/mb"
+	"github.com/elastic/beats/v8/metricbeat/scripts/msetlists"
 	"github.com/elastic/elastic-agent-libs/paths"
 )
 

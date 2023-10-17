@@ -19,8 +19,8 @@ import (
 	"github.com/aws/smithy-go"
 	"go.uber.org/multierr"
 
-	"github.com/elastic/beats/v7/libbeat/beat"
-	awscommon "github.com/elastic/beats/v7/x-pack/libbeat/common/aws"
+	"github.com/elastic/beats/v8/libbeat/beat"
+	awscommon "github.com/elastic/beats/v8/x-pack/libbeat/common/aws"
 	"github.com/elastic/elastic-agent-libs/logp"
 )
 

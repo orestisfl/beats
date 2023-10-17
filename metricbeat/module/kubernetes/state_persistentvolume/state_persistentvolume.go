@@ -18,10 +18,10 @@
 package state_persistentvolume
 
 import (
-	"github.com/elastic/beats/v7/metricbeat/helper/kubernetes"
-	p "github.com/elastic/beats/v7/metricbeat/helper/prometheus"
-	"github.com/elastic/beats/v7/metricbeat/mb"
-	"github.com/elastic/beats/v7/metricbeat/module/kubernetes/util"
+	"github.com/elastic/beats/v8/metricbeat/helper/kubernetes"
+	p "github.com/elastic/beats/v8/metricbeat/helper/prometheus"
+	"github.com/elastic/beats/v8/metricbeat/mb"
+	"github.com/elastic/beats/v8/metricbeat/module/kubernetes/util"
 )
 
 // mapping stores the state metrics we want to fetch and will be used by this metricset

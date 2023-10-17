@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/elastic/beats/v7/x-pack/metricbeat/module/oracle"
+	"github.com/elastic/beats/v8/x-pack/metricbeat/module/oracle"
 	"github.com/elastic/elastic-agent-libs/mapstr"
 )
 

@@ -5,9 +5,9 @@
 package httpjson
 
 import (
-	v2 "github.com/elastic/beats/v7/filebeat/input/v2"
-	stateless "github.com/elastic/beats/v7/filebeat/input/v2/input-stateless"
-	"github.com/elastic/beats/v7/libbeat/beat"
+	v2 "github.com/elastic/beats/v8/filebeat/input/v2"
+	stateless "github.com/elastic/beats/v8/filebeat/input/v2/input-stateless"
+	"github.com/elastic/beats/v8/libbeat/beat"
 	conf "github.com/elastic/elastic-agent-libs/config"
 )
 

@@ -32,7 +32,7 @@ import (
 	"github.com/elastic/go-lookslike/testslike"
 	"github.com/elastic/go-lookslike/validator"
 
-	"github.com/elastic/beats/v7/heartbeat/scheduler"
+	"github.com/elastic/beats/v8/heartbeat/scheduler"
 )
 
 // TestMonitorBasic tests a basic config

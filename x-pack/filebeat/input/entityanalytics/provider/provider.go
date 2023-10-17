@@ -9,7 +9,7 @@ import (
 	"errors"
 	"sync"
 
-	v2 "github.com/elastic/beats/v7/filebeat/input/v2"
+	v2 "github.com/elastic/beats/v8/filebeat/input/v2"
 	"github.com/elastic/elastic-agent-libs/logp"
 )
 
