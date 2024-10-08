@@ -7,10 +7,12 @@ package cel
 import (
 	"github.com/elastic/go-concert/unison"
 
-	v2 "github.com/elastic/beats/v7/filebeat/input/v2"
-	inputcursor "github.com/elastic/beats/v7/filebeat/input/v2/input-cursor"
 	conf "github.com/elastic/elastic-agent-libs/config"
 	"github.com/elastic/elastic-agent-libs/logp"
+
+	v2 "github.com/elastic/beats/v7/filebeat/input/v2"
+	inputcursor "github.com/elastic/beats/v7/filebeat/input/v2/input-cursor"
+	"github.com/elastic/beats/v7/x-pack/filebeat/tmp"
 )
 
 // inputManager wraps one stateless input manager
@@ -47,6 +49,7 @@ func (s *source) Name() string { return s.cfg.Resource.URL.String() }
 
 // Init initializes both wrapped input managers.
 func (m InputManager) Init(grp unison.Group) error {
+	tmp.Debug("cel Input Manager Init()", "group", grp)
 	return m.cursor.Init(grp)
 }
 

@@ -10,10 +10,11 @@ import (
 	conf "github.com/elastic/elastic-agent-libs/config"
 	"github.com/elastic/go-concert/unison"
 
+	"github.com/elastic/elastic-agent-libs/logp"
+
 	v2 "github.com/elastic/beats/v7/filebeat/input/v2"
 	inputcursor "github.com/elastic/beats/v7/filebeat/input/v2/input-cursor"
 	stateless "github.com/elastic/beats/v7/filebeat/input/v2/input-stateless"
-	"github.com/elastic/elastic-agent-libs/logp"
 )
 
 // inputManager wraps one stateless input manager
@@ -41,6 +42,10 @@ func NewInputManager(log *logp.Logger, store inputcursor.StateStore) InputManage
 
 // Init initializes both wrapped input managers.
 func (m InputManager) Init(grp unison.Group) error {
+	logp.NewLogger("storage-poc").Infof("httpjson Manager init: %v", grp)
+	defer func() {
+		logp.NewLogger("storage-poc").Infof("Done httpjson manager init: %v", grp)
+	}()
 	return multierr.Append(
 		m.stateless.Init(grp),
 		m.cursor.Init(grp),

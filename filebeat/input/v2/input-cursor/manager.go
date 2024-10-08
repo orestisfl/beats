@@ -26,10 +26,12 @@ import (
 
 	"github.com/elastic/go-concert/unison"
 
-	v2 "github.com/elastic/beats/v7/filebeat/input/v2"
-	"github.com/elastic/beats/v7/libbeat/statestore"
 	conf "github.com/elastic/elastic-agent-libs/config"
 	"github.com/elastic/elastic-agent-libs/logp"
+
+	v2 "github.com/elastic/beats/v7/filebeat/input/v2"
+	"github.com/elastic/beats/v7/libbeat/statestore"
+	"github.com/elastic/beats/v7/x-pack/filebeat/tmp"
 )
 
 // InputManager is used to create, manage, and coordinate stateful inputs and
@@ -108,6 +110,7 @@ func (cim *InputManager) init() error {
 // Init starts background processes for deleting old entries from the
 // persistent store if mode is ModeRun.
 func (cim *InputManager) Init(group unison.Group) error {
+	tmp.Debug("cursor Input Manager Init()", "group", group)
 	if err := cim.init(); err != nil {
 		return err
 	}

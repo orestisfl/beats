@@ -20,7 +20,10 @@ package statestore
 import (
 	"sync"
 
+	"github.com/elastic/elastic-agent-libs/logp"
+
 	"github.com/elastic/beats/v7/libbeat/statestore/backend"
+	"github.com/elastic/beats/v7/x-pack/filebeat/tmp"
 )
 
 // Registry manages multiple key-value stores.
@@ -56,21 +59,28 @@ func (r *Registry) Close() error {
 // Get opens a shared store. A store is closed and released only after all it's
 // users have closed the store.
 func (r *Registry) Get(name string) (*Store, error) {
+	tmp.Debug("Registry.Get() try lock", "name", name, "backend", r.backend)
 	r.mu.Lock()
+	tmp.Debug("Registry.Get() got lock", "name", name, "backend", r.backend)
 	defer r.mu.Unlock()
 
 	shared := r.active[name]
 	if shared == nil {
+		tmp.Debug("Registry.Get() opening shared store", "name", name, "backend", r.backend)
 		backend, err := r.backend.Access(name)
 		if err != nil {
+			logp.NewLogger("storage-poc").Errorw("Registry.Get() error opening shared store", "name", name, "backend", r.backend, "err", err)
 			return nil, &ErrorAccess{name: name, cause: err}
 		}
+		tmp.Debug("Registry.Get() opening shared store done", "name", name, "backend", r.backend, "access", backend)
 
 		shared = newSharedStore(r, name, backend)
 		defer shared.Release()
 
 		r.active[name] = shared
 		r.wg.Add(1)
+	} else {
+		tmp.Debug("Registry.Get() shared store already open", "name", name, "backend", r.backend, "shared", shared)
 	}
 
 	return newStore(shared), nil

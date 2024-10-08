@@ -26,14 +26,11 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"runtime/debug"
 	"time"
 
 	"go.elastic.co/apm/module/apmelasticsearch/v2"
 
-	"github.com/elastic/beats/v7/libbeat/common"
-	"github.com/elastic/beats/v7/libbeat/common/productorigin"
-	"github.com/elastic/beats/v7/libbeat/common/transport/kerberos"
-	"github.com/elastic/beats/v7/libbeat/version"
 	cfg "github.com/elastic/elastic-agent-libs/config"
 	"github.com/elastic/elastic-agent-libs/logp"
 	"github.com/elastic/elastic-agent-libs/testing"
@@ -42,6 +39,11 @@ import (
 	"github.com/elastic/elastic-agent-libs/transport/tlscommon"
 	"github.com/elastic/elastic-agent-libs/useragent"
 	libversion "github.com/elastic/elastic-agent-libs/version"
+
+	"github.com/elastic/beats/v7/libbeat/common"
+	"github.com/elastic/beats/v7/libbeat/common/productorigin"
+	"github.com/elastic/beats/v7/libbeat/common/transport/kerberos"
+	"github.com/elastic/beats/v7/libbeat/version"
 )
 
 type esHTTPClient interface {
@@ -112,6 +114,7 @@ type ESVersionData struct {
 // NewConnection returns a new Elasticsearch client
 func NewConnection(s ConnectionSettings) (*Connection, error) {
 	logger := logp.NewLogger("esclientleg")
+	logger.Infow("Orestis: NewConnection", "stack", debug.Stack())
 
 	if s.IdleConnTimeout == 0 {
 		s.IdleConnTimeout = 1 * time.Minute

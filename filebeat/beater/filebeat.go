@@ -25,6 +25,12 @@ import (
 	"sync"
 	"time"
 
+	conf "github.com/elastic/elastic-agent-libs/config"
+	"github.com/elastic/elastic-agent-libs/logp"
+	"github.com/elastic/elastic-agent-libs/monitoring"
+	"github.com/elastic/elastic-agent-libs/paths"
+	"github.com/elastic/go-concert/unison"
+
 	"github.com/elastic/beats/v7/filebeat/backup"
 	"github.com/elastic/beats/v7/filebeat/channel"
 	cfg "github.com/elastic/beats/v7/filebeat/config"
@@ -45,11 +51,8 @@ import (
 	"github.com/elastic/beats/v7/libbeat/outputs/elasticsearch"
 	"github.com/elastic/beats/v7/libbeat/publisher/pipetool"
 	"github.com/elastic/beats/v7/libbeat/statestore"
-	conf "github.com/elastic/elastic-agent-libs/config"
-	"github.com/elastic/elastic-agent-libs/logp"
-	"github.com/elastic/elastic-agent-libs/monitoring"
-	"github.com/elastic/elastic-agent-libs/paths"
-	"github.com/elastic/go-concert/unison"
+	elasticsearchstatestore "github.com/elastic/beats/v7/libbeat/statestore/backend/elasticsearch"
+	"github.com/elastic/beats/v7/x-pack/filebeat/tmp"
 
 	// Add filebeat level processors
 	_ "github.com/elastic/beats/v7/filebeat/processor/add_kubernetes_metadata"
@@ -134,6 +137,7 @@ func newBeater(b *beat.Beat, plugins PluginFactory, rawConfig *conf.C) (beat.Bea
 	}
 
 	if b.Manager != nil {
+		tmp.Debug("Manager enabled", "agent.info", b.Manager.AgentInfo())
 		b.Manager.RegisterDiagnosticHook("input_metrics", "Metrics from active inputs.",
 			"input_metrics.json", "application/json", func() []byte {
 				data, err := inputmon.MetricSnapshotJSON()
@@ -202,6 +206,7 @@ func (fb *Filebeat) setupPipelineLoaderCallback(b *beat.Beat) error {
 
 		// When running the subcommand setup, configuration from modules.d directories
 		// have to be loaded using cfg.Reloader. Otherwise those configurations are skipped.
+		elasticsearchstatestore.SetConfig(b.Config.Output.Config())
 		pipelineLoaderFactory := newPipelineLoaderFactory(b.Config.Output.Config())
 		enableAllFilesets, _ := b.BeatConfig.Bool("config.modules.enable_all_filesets", -1)
 		forceEnableModuleFilesets, _ := b.BeatConfig.Bool("config.modules.force_enable_module_filesets", -1)
@@ -254,6 +259,7 @@ func (fb *Filebeat) loadModulesPipelines(b *beat.Beat) error {
 
 // Run allows the beater to be run as a beat.
 func (fb *Filebeat) Run(b *beat.Beat) error {
+	tmp.Debug("filebeat run")
 	var err error
 	config := fb.config
 
@@ -281,18 +287,21 @@ func (fb *Filebeat) Run(b *beat.Beat) error {
 		return err
 	}
 
-	stateStore, err := openStateStore(b.Info, logp.NewLogger("filebeat"), config.Registry)
+	tmp.Debug("opening store")
+	stateStore, err := openStateStore(b, logp.NewLogger("filebeat"), config.Registry)
 	if err != nil {
 		logp.Err("Failed to open state store: %+v", err)
 		return err
 	}
 	defer stateStore.Close()
+	tmp.Debug("Done with statestore")
 
 	err = processLogInputTakeOver(stateStore, config)
 	if err != nil {
 		logp.Err("Failed to attempt filestream state take over: %+v", err)
 		return err
 	}
+	tmp.Debug("Done with log input take over")
 
 	// Setup registrar to persist state
 	registrar, err := registrar.New(stateStore, finishedLogger, config.Registry.FlushTimeout)
@@ -300,12 +309,13 @@ func (fb *Filebeat) Run(b *beat.Beat) error {
 		logp.Err("Could not init registrar: %v", err)
 		return err
 	}
+	tmp.Debug("Done with registrar")
 
 	// Make sure all events that were published in
 	registrarChannel := newRegistrarLogger(registrar)
 
 	// setup event counting for startup and a global common ACKer, such that all events will be
-	// routed to the reigstrar after they've been ACKed.
+	// routed to the registrar after they've been ACKed.
 	// Events with Private==nil or the type of private != file.State are directly
 	// forwarded to `finishedLogger`. Events from the `logs` input will first be forwarded
 	// to the registrar via `registrarChannel`, which finally forwards the events to finishedLogger as well.
@@ -332,31 +342,39 @@ func (fb *Filebeat) Run(b *beat.Beat) error {
 
 	inputsLogger := logp.NewLogger("input")
 	v2Inputs := fb.pluginFactory(b.Info, inputsLogger, stateStore)
+	tmp.Debug("Done with v2 inputs")
 	v2InputLoader, err := v2.NewLoader(inputsLogger, v2Inputs, "type", cfg.DefaultType)
+	tmp.Debug("Done with v2 input loader")
 	if err != nil {
 		panic(err) // loader detected invalid state.
 	}
 
+	tmp.Debug("start input task group")
 	var inputTaskGroup unison.TaskGroup
 	defer func() {
 		_ = inputTaskGroup.Stop()
 	}()
+	tmp.Debug("start input loader init")
 	if err := v2InputLoader.Init(&inputTaskGroup); err != nil {
 		logp.Err("Failed to initialize the input managers: %v", err)
 		return err
 	}
+	tmp.Debug("done with input loader init")
 
 	inputLoader := channel.RunnerFactoryWithCommonInputSettings(b.Info, compat.Combine(
 		compat.RunnerFactory(inputsLogger, b.Info, v2InputLoader),
 		input.NewRunnerFactory(pipelineConnector, registrar, fb.done),
 	))
+	tmp.Debug("Done with input loader")
 	moduleLoader := fileset.NewFactory(inputLoader, b.Info, pipelineLoaderFactory, config.OverwritePipelines)
+	tmp.Debug("Done with module loader")
 
 	crawler, err := newCrawler(inputLoader, moduleLoader, config.Inputs, fb.done, *once)
 	if err != nil {
 		logp.Err("Could not init crawler: %v", err)
 		return err
 	}
+	tmp.Debug("Done with crawler")
 
 	// The order of starting and stopping is important. Stopping is inverted to the starting order.
 	// The current order is: registrar, publisher, spooler, crawler
@@ -367,6 +385,7 @@ func (fb *Filebeat) Run(b *beat.Beat) error {
 	if err != nil {
 		return fmt.Errorf("Could not start registrar: %w", err)
 	}
+	tmp.Debug("Done with start registrar")
 
 	// Stopping registrar will write last state
 	defer registrar.Stop()
@@ -380,12 +399,14 @@ func (fb *Filebeat) Run(b *beat.Beat) error {
 	}()
 
 	// Wait for all events to be processed or timeout
+	tmp.Debug("Wait all events")
 	defer waitEvents.Wait()
 
 	if config.OverwritePipelines {
 		logp.Debug("modules", "Existing Ingest pipelines will be updated")
 	}
 
+	tmp.Debug("Start crawler")
 	err = crawler.Start(fb.pipeline, config.ConfigInput, config.ConfigModules)
 	if err != nil {
 		crawler.Stop()
@@ -402,9 +423,10 @@ func (fb *Filebeat) Run(b *beat.Beat) error {
 		waitFinished.Add(runOnce)
 	}
 
-	// Register reloadable list of inputs and modules
+	tmp.Debug("Register reloadable list of inputs and modules")
 	inputs := cfgfile.NewRunnerList(management.DebugK, inputLoader, fb.pipeline)
 	b.Registry.MustRegisterInput(inputs)
+	tmp.Debug("done with register reloadable list of inputs and modules")
 
 	modules := cfgfile.NewRunnerList(management.DebugK, moduleLoader, fb.pipeline)
 
@@ -425,7 +447,9 @@ func (fb *Filebeat) Run(b *beat.Beat) error {
 			return err
 		}
 	}
+	tmp.Debug("start adiscover")
 	adiscover.Start()
+	tmp.Debug("done with start adiscover -- start manager")
 
 	// We start the manager when all the subsystem are initialized and ready to received events.
 	if err := b.Manager.Start(); err != nil {
@@ -434,7 +458,9 @@ func (fb *Filebeat) Run(b *beat.Beat) error {
 
 	// Add done channel to wait for shutdown signal
 	waitFinished.AddChan(fb.done)
+	tmp.Debug("wait shutdown")
 	waitFinished.Wait()
+	tmp.Debug("shutdown!")
 
 	// Stop reloadable lists, autodiscover -> Stop crawler -> stop inputs -> stop harvesters
 	// Note: waiting for crawlers to stop here in order to install wgEvents.Wait

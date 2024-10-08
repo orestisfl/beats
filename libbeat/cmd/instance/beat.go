@@ -43,6 +43,26 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
+	"github.com/elastic/elastic-agent-libs/config"
+	"github.com/elastic/elastic-agent-libs/file"
+	"github.com/elastic/elastic-agent-libs/filewatcher"
+	"github.com/elastic/elastic-agent-libs/keystore"
+	kbn "github.com/elastic/elastic-agent-libs/kibana"
+	"github.com/elastic/elastic-agent-libs/logp"
+	"github.com/elastic/elastic-agent-libs/logp/configure"
+	"github.com/elastic/elastic-agent-libs/mapstr"
+	"github.com/elastic/elastic-agent-libs/monitoring"
+	"github.com/elastic/elastic-agent-libs/monitoring/report/buffer"
+	"github.com/elastic/elastic-agent-libs/paths"
+	svc "github.com/elastic/elastic-agent-libs/service"
+	"github.com/elastic/elastic-agent-libs/transport/tlscommon"
+	libversion "github.com/elastic/elastic-agent-libs/version"
+	"github.com/elastic/elastic-agent-system-metrics/metric/system/host"
+	metricreport "github.com/elastic/elastic-agent-system-metrics/report"
+	"github.com/elastic/go-sysinfo"
+	"github.com/elastic/go-sysinfo/types"
+	"github.com/elastic/go-ucfg"
+
 	"github.com/elastic/beats/v7/libbeat/api"
 	"github.com/elastic/beats/v7/libbeat/asset"
 	"github.com/elastic/beats/v7/libbeat/beat"
@@ -70,26 +90,9 @@ import (
 	"github.com/elastic/beats/v7/libbeat/publisher/pipeline"
 	"github.com/elastic/beats/v7/libbeat/publisher/processing"
 	"github.com/elastic/beats/v7/libbeat/publisher/queue/diskqueue"
+	elasticsearchstatestore "github.com/elastic/beats/v7/libbeat/statestore/backend/elasticsearch"
 	"github.com/elastic/beats/v7/libbeat/version"
-	"github.com/elastic/elastic-agent-libs/config"
-	"github.com/elastic/elastic-agent-libs/file"
-	"github.com/elastic/elastic-agent-libs/filewatcher"
-	"github.com/elastic/elastic-agent-libs/keystore"
-	kbn "github.com/elastic/elastic-agent-libs/kibana"
-	"github.com/elastic/elastic-agent-libs/logp"
-	"github.com/elastic/elastic-agent-libs/logp/configure"
-	"github.com/elastic/elastic-agent-libs/mapstr"
-	"github.com/elastic/elastic-agent-libs/monitoring"
-	"github.com/elastic/elastic-agent-libs/monitoring/report/buffer"
-	"github.com/elastic/elastic-agent-libs/paths"
-	svc "github.com/elastic/elastic-agent-libs/service"
-	"github.com/elastic/elastic-agent-libs/transport/tlscommon"
-	libversion "github.com/elastic/elastic-agent-libs/version"
-	"github.com/elastic/elastic-agent-system-metrics/metric/system/host"
-	metricreport "github.com/elastic/elastic-agent-system-metrics/report"
-	"github.com/elastic/go-sysinfo"
-	"github.com/elastic/go-sysinfo/types"
-	"github.com/elastic/go-ucfg"
+	"github.com/elastic/beats/v7/x-pack/filebeat/tmp"
 )
 
 // Beat provides the runnable and configurable instance of a beat.
@@ -1497,12 +1500,17 @@ func (b *Beat) reloadOutputOnCertChange(cfg config.Namespace) error {
 
 func (b *Beat) createOutput(stats outputs.Observer, cfg config.Namespace) (outputs.Group, error) {
 	if !cfg.IsSet() {
+		tmp.Debug("createOutput !cfg.IsSet()")
 		return outputs.Group{}, nil
 	}
 
 	if err := b.reloadOutputOnCertChange(cfg); err != nil {
+		tmp.Debug("createOutput err", "err", err)
 		return outputs.Group{}, fmt.Errorf("could not setup output certificates reloader: %w", err)
 	}
+
+	tmp.Debug("createOutput SetConfig()")
+	elasticsearchstatestore.SetConfig(cfg.Config())
 
 	return outputs.Load(b.IdxSupporter, b.Info, stats, cfg.Name(), cfg.Config())
 }

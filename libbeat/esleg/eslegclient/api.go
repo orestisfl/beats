@@ -23,6 +23,8 @@ import (
 	"strconv"
 
 	"github.com/elastic/elastic-agent-libs/version"
+
+	"github.com/elastic/beats/v7/x-pack/filebeat/tmp"
 )
 
 // QueryResult contains the result of a query.
@@ -266,5 +268,6 @@ func (conn *Connection) apiCall(
 	if err != nil {
 		return 0, nil, err
 	}
+	tmp.Debug(fmt.Sprintf("apiCall(%s, %s, %s)", path, method, pipeline), "params", params, "body", body)
 	return conn.Request(method, path, pipeline, params, body)
 }

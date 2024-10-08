@@ -22,13 +22,15 @@ import (
 	"sync"
 	"time"
 
+	"github.com/elastic/elastic-agent-libs/logp"
+	"github.com/elastic/go-concert"
+	"github.com/elastic/go-concert/unison"
+
 	"github.com/elastic/beats/v7/libbeat/common/atomic"
 	"github.com/elastic/beats/v7/libbeat/common/cleanup"
 	"github.com/elastic/beats/v7/libbeat/common/transform/typeconv"
 	"github.com/elastic/beats/v7/libbeat/statestore"
-	"github.com/elastic/elastic-agent-libs/logp"
-	"github.com/elastic/go-concert"
-	"github.com/elastic/go-concert/unison"
+	"github.com/elastic/beats/v7/x-pack/filebeat/tmp"
 )
 
 // store encapsulates the persistent store and the in memory state store, that
@@ -128,20 +130,24 @@ type (
 var closeStore = (*store).close
 
 func openStore(log *logp.Logger, statestore StateStore, prefix string) (*store, error) {
+	tmp.Debug("cursor open store", "store", statestore, "prefix", prefix)
 	ok := false
 
 	persistentStore, err := statestore.Access()
 	if err != nil {
+		log.Named("storage-poc").Errorw("cursor access persistentStore store error", "err", err)
 		return nil, err
 	}
 	defer cleanup.IfNot(&ok, func() { persistentStore.Close() })
 
 	states, err := readStates(log, persistentStore, prefix)
 	if err != nil {
+		log.Named("storage-poc").Errorw("cursor access read states error", "err", err)
 		return nil, err
 	}
 
 	ok = true
+	tmp.Debug("cursor open store done", "persistentStore", persistentStore, "ok", ok, "err", err)
 	return &store{
 		log:             log,
 		persistentStore: persistentStore,
@@ -191,7 +197,7 @@ func (s *store) UpdateTTL(resource *resource, ttl time.Duration) {
 		Cursor:  resource.cursor,
 	})
 	if err != nil {
-		s.log.Errorf("Failed to update resource management fields for '%v'", resource.key)
+		s.log.Errorf("Failed to update resource management fields for '%v': %v", resource.key, err)
 		resource.internalInSync = false
 	} else {
 		resource.stored = true

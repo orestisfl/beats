@@ -20,12 +20,15 @@ package beater
 import (
 	"time"
 
+	"github.com/elastic/elastic-agent-libs/logp"
+	"github.com/elastic/elastic-agent-libs/paths"
+
 	"github.com/elastic/beats/v7/filebeat/config"
 	"github.com/elastic/beats/v7/libbeat/beat"
 	"github.com/elastic/beats/v7/libbeat/statestore"
+	"github.com/elastic/beats/v7/libbeat/statestore/backend"
+	"github.com/elastic/beats/v7/libbeat/statestore/backend/elasticsearch"
 	"github.com/elastic/beats/v7/libbeat/statestore/backend/memlog"
-	"github.com/elastic/elastic-agent-libs/logp"
-	"github.com/elastic/elastic-agent-libs/paths"
 )
 
 type filebeatStore struct {
@@ -34,20 +37,31 @@ type filebeatStore struct {
 	cleanInterval time.Duration
 }
 
-func openStateStore(info beat.Info, logger *logp.Logger, cfg config.Registry) (*filebeatStore, error) {
-	memlog, err := memlog.New(logger, memlog.Settings{
-		Root:     paths.Resolve(paths.Data, cfg.Path),
-		FileMode: cfg.Permissions,
-	})
-	if err != nil {
-		return nil, err
+func openStateStore(b *beat.Beat, logger *logp.Logger, cfg config.Registry) (*filebeatStore, error) {
+	var registry backend.Registry
+	var err error
+	if usePOC() {
+		registry = elasticsearch.New(logger.Named("storage-poc"), b)
+	} else {
+		registry, err = memlog.New(logger, memlog.Settings{
+			Root:     paths.Resolve(paths.Data, cfg.Path),
+			FileMode: cfg.Permissions,
+		})
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &filebeatStore{
-		registry:      statestore.NewRegistry(memlog),
-		storeName:     info.Beat,
+		registry:      statestore.NewRegistry(registry),
+		storeName:     b.Info.Beat,
 		cleanInterval: cfg.CleanInterval,
 	}, nil
+}
+
+func usePOC() bool {
+	return true
+	// return os.Getenv("POC_ELASTICSEARCH_STORE") != "false"
 }
 
 func (s *filebeatStore) Close() {
