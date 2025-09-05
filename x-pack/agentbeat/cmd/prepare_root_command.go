@@ -15,6 +15,7 @@ import (
 	metricbeat "github.com/elastic/beats/v7/x-pack/metricbeat/cmd"
 	osquerybeat "github.com/elastic/beats/v7/x-pack/osquerybeat/cmd"
 	packetbeat "github.com/elastic/beats/v7/x-pack/packetbeat/cmd"
+	cloudbeat "github.com/elastic/cloudbeat/cmd"
 )
 
 func prepareRootCommand() *cobra.Command {
@@ -33,6 +34,7 @@ into a single agentbeat binary.`,
 		prepareCommand(metricbeat.Initialize()),
 		prepareCommand(osquerybeat.RootCmd),
 		prepareCommand(packetbeat.RootCmd),
+		prepareCommand(cloudbeat.RootCmd),
 	)
 
 	return rootCmd
