@@ -27,7 +27,7 @@ func createDefaultConfig() component.Config {
 	return &Config{}
 }
 
-func createReceiver(_ context.Context, set receiver.Settings, baseCfg component.Config, consumer consumer.Logs) (receiver.Logs, error) {
+func createReceiver(ctx context.Context, set receiver.Settings, baseCfg component.Config, consumer consumer.Logs) (receiver.Logs, error) {
 	cfg, ok := baseCfg.(*Config)
 	if !ok {
 		return nil, fmt.Errorf("could not convert otel config to cloudbeat config")
@@ -36,7 +36,6 @@ func createReceiver(_ context.Context, set receiver.Settings, baseCfg component.
 	b, err := xpInstance.NewBeatForReceiver(
 		cloudbeatSettings(),
 		cfg.Beatconfig,
-		true,
 		consumer,
 		set.ID.String(),
 		set.Logger.Core(),
@@ -45,7 +44,7 @@ func createReceiver(_ context.Context, set receiver.Settings, baseCfg component.
 		return nil, fmt.Errorf("error creating %s: %w", Name, err)
 	}
 
-	br, err := xpInstance.NewBeatReceiver(b, cloudbeat.NewBeater)
+	br, err := xpInstance.NewBeatReceiver(ctx, b, cloudbeat.NewBeater)
 	if err != nil {
 		return nil, fmt.Errorf("error creating %s:%w", Name, err)
 	}
@@ -56,7 +55,7 @@ func createReceiver(_ context.Context, set receiver.Settings, baseCfg component.
 func cloudbeatSettings() instance.Settings {
 	runFlags := pflag.NewFlagSet(Name, pflag.ExitOnError)
 	return instance.Settings{
-		Name:            Name,
+		Name:            "cloudbeat",
 		HasDashboards:   false,
 		ElasticLicensed: true,
 		Monitoring:      report.Settings{},

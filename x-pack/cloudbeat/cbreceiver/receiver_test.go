@@ -2,6 +2,8 @@
 // or more contributor license agreements. Licensed under the Elastic License;
 // you may not use this file except in compliance with the Elastic License.
 
+//go:build integration
+
 package cbreceiver
 
 import (
@@ -14,6 +16,7 @@ import (
 	"go.uber.org/zap/zaptest/observer"
 )
 
+// TestNewReceiver requires a Kubernetes cluster to be available.
 func TestNewReceiver(t *testing.T) {
 	config := Config{
 		Beatconfig: map[string]any{
@@ -49,13 +52,11 @@ func TestNewReceiver(t *testing.T) {
 				Factory: NewFactory(),
 			},
 		},
-		Status: oteltest.ExpectedStatus{
-			Status: componentstatus.StatusOK,
-		},
+		Status: componentstatus.NewEvent(componentstatus.StatusOK),
 		AssertFunc: func(c *assert.CollectT, logs map[string][]mapstr.M, zapLogs *observer.ObservedLogs) {
 			// We don't expect any logs since there are no inputs that would generate data
 			// in a test environment without a real cloud provider.
-			// The main goal is to ensure the receiver can be created, started, and shutdown without errors.
+			// The main goal is to ensure the receiver can be created, started, and shut down without errors.
 		},
 	})
 }
