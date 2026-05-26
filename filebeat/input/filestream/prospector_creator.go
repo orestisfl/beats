@@ -115,6 +115,7 @@ func newProspector(
 		config.FileWatcher,
 		config.Compression,
 		config.Delete.Enabled,
+		config.cacheAdviseEnabled(),
 		identifier,
 		srci,
 	)

@@ -72,6 +72,7 @@ type filestream struct {
 	includeFileOwnerName      bool
 	includeFileOwnerGroupName bool
 	hasLineFilter             bool
+	fileCacheAdvise           bool
 
 	// Function references for testing
 	waitGracePeriodFn func(
@@ -152,6 +153,7 @@ func configure(
 		includeFileOwnerName:      c.IncludeFileOwnerName,
 		includeFileOwnerGroupName: c.IncludeFileOwnerGroupName,
 		hasLineFilter:             len(c.Reader.IncludeLines) > 0 || len(c.Reader.ExcludeLines) > 0,
+		fileCacheAdvise:           c.cacheAdviseEnabled(),
 		deleterConfig:             c.Delete,
 		waitGracePeriodFn:         waitGracePeriod,
 		tickFn:                    time.Tick,
@@ -490,7 +492,7 @@ func (inp *filestream) open(
 	// NewLineReader uses additional buffering to deal with encoding and testing
 	// for new lines in input stream. Simple 8-bit based encodings, or plain
 	// don't require 'complicated' logic.
-	logReader, err := newFileReader(log, canceler, f, inp.readerConfig, closerCfg)
+	logReader, err := newFileReader(log, canceler, f, inp.readerConfig, closerCfg, inp.fileCacheAdvise)
 	if err != nil {
 		return nil, truncated, err
 	}

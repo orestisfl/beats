@@ -96,6 +96,7 @@ func TestLogFileTimedClosing(t *testing.T) {
 						AfterInterval: tc.afterInterval,
 					},
 				},
+				false,
 			)
 			if err != nil {
 				t.Fatalf("error while creating logReader: %+v", err)
@@ -161,7 +162,7 @@ func TestLogFileTruncated(t *testing.T) {
 			defer os.Remove(f.Name())
 
 			reader, err := newFileReader(
-				logp.NewNopLogger(), context.TODO(), f, fs.readerConfig, fs.closerConfig)
+				logp.NewNopLogger(), context.TODO(), f, fs.readerConfig, fs.closerConfig, false)
 			require.NoError(t, err, "error while creating logReader")
 
 			buf := make([]byte, 32)

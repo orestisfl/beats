@@ -80,6 +80,16 @@ type config struct {
 	Rotation       *conf.Namespace    `config:"rotation"`
 	Delete         deleterConfig      `config:"delete"`
 
+	// FileCacheAdvise enables calling posix_fadvise(POSIX_FADV_DONTNEED) on
+	// the bytes already consumed from each tracked file. This asks the kernel
+	// to drop the corresponding pages from the page cache, which is useful in
+	// memory-constrained environments (notably Kubernetes, where active page
+	// cache counts toward the container's working set).
+	//
+	// The advice is best-effort: the kernel only evicts clean, unmapped pages.
+	// Only supported on Linux; on other platforms this option is a no-op.
+	FileCacheAdvise bool `config:"file_cache_advise"`
+
 	// TakeOver is also independently parsed by InputManager.Create
 	// (see internal/input-logfile/manager.go).
 	TakeOver loginp.TakeOverConfig `config:"take_over"`
@@ -250,6 +260,13 @@ func (c *config) Validate() error {
 	return nil
 }
 
+// cacheAdviseEnabled reports whether file_cache_advise should take effect at
+// runtime. It is the single source of truth for combining the user-facing
+// option with the platform's support for posix_fadvise(POSIX_FADV_DONTNEED).
+func (c config) cacheAdviseEnabled() bool {
+	return c.FileCacheAdvise && fadviseDontNeedSupported
+}
+
 // checkUnsupportedParams checks if unsupported/deprecated/discouraged parameters are set and logs a warning
 func (c config) checkUnsupportedParams(logger *logp.Logger) {
 	if c.AllowIDDuplication {
@@ -257,6 +274,11 @@ func (c config) checkUnsupportedParams(logger *logp.Logger) {
 			"setting `allow_deprecated_id_duplication` will lead to data " +
 				"duplication and incomplete input metrics, it's use is " +
 				"highly discouraged.")
+	}
+	if c.FileCacheAdvise && !fadviseDontNeedSupported {
+		logger.Named("filestream").Warn(
+			"'file_cache_advise' is set but the current platform does not " +
+				"support posix_fadvise(POSIX_FADV_DONTNEED); option ignored.")
 	}
 	if c.GZIPExperimental != nil {
 		if c.Compression != CompressionNone {

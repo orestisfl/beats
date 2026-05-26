@@ -93,12 +93,13 @@ func newFileWatcher(
 	config fileWatcherConfig,
 	compression string,
 	sendNotChanged bool,
+	fileCacheAdvise bool,
 	fi fileIdentifier,
 	srci *loginp.SourceIdentifier,
 ) (*fileWatcher, error) {
 
 	config.SendNotChanged = sendNotChanged
-	scanner, err := newFileScanner(logger, paths, config.Scanner, compression)
+	scanner, err := newFileScanner(logger, paths, config.Scanner, compression, fileCacheAdvise)
 	if err != nil {
 		return nil, err
 	}
@@ -399,15 +400,22 @@ type fileScanner struct {
 	hasher           hash.Hash
 	readBuffer       []byte
 	compression      string
+
+	// fileCacheAdvise, when true, asks the kernel (via posix_fadvise) to
+	// drop the fingerprinted byte range from the page cache after each
+	// scan. This prevents the prospector's per-tick fingerprint reads
+	// from promoting file head pages to active_file LRU.
+	fileCacheAdvise bool
 }
 
-func newFileScanner(logger *logp.Logger, paths []string, config fileScannerConfig, compression string) (*fileScanner, error) {
+func newFileScanner(logger *logp.Logger, paths []string, config fileScannerConfig, compression string, fileCacheAdvise bool) (*fileScanner, error) {
 	s := fileScanner{
-		paths:       paths,
-		cfg:         config,
-		log:         logger.Named(scannerDebugKey),
-		hasher:      sha256.New(),
-		compression: compression,
+		paths:           paths,
+		cfg:             config,
+		log:             logger.Named(scannerDebugKey),
+		hasher:          sha256.New(),
+		compression:     compression,
+		fileCacheAdvise: fileCacheAdvise,
 	}
 
 	if s.cfg.Fingerprint.Enabled {
@@ -692,6 +700,15 @@ func (s *fileScanner) toFileDescriptor(it *ingestTarget) (fd loginp.FileDescript
 		if err != nil {
 			return fd, fmt.Errorf("fileScanner: failed to open %q to create FileDescriptor: %w", it.originalFilename, err)
 		}
+		// Disable kernel read-ahead for this fd before we read the
+		// fingerprint range. Otherwise the kernel would speculatively load
+		// ~128 KiB of pages past our fingerprint range that we cannot
+		// surgically evict afterwards. The hint is per-fd and ephemeral.
+		if s.fileCacheAdvise {
+			if err := fadviseRandom(osFile); err != nil {
+				s.log.Debugf("posix_fadvise(FADV_RANDOM) for %q failed: %v", fd.Filename, err)
+			}
+		}
 		file = newPlainFile(osFile)
 	}
 
@@ -714,6 +731,21 @@ func (s *fileScanner) toFileDescriptor(it *ingestTarget) (fd loginp.FileDescript
 	}
 
 	fd.Fingerprint = hex.EncodeToString(s.hasher.Sum(nil))
+
+	// Drop the fingerprinted byte range from the page cache so that the next
+	// scan tick's fingerprint read is a *first* access (lands in
+	// inactive_file) instead of a *second* access (would otherwise be
+	// promoted to active_file). The length is rounded up to the page size
+	// because the kernel deliberately preserves partial pages on
+	// POSIX_FADV_DONTNEED. We disabled read-ahead above so the cached range
+	// is bounded by the rounded-up fingerprint length.
+	// No-op for gzip (the underlying offsets do not match the read range).
+	if s.fileCacheAdvise && !fd.GZIP {
+		length := pageAlignUp(s.cfg.Fingerprint.Length)
+		if err := fadviseDontNeed(opener.f, s.cfg.Fingerprint.Offset, length); err != nil {
+			s.log.Debugf("posix_fadvise(FADV_DONTNEED) for fingerprint range of %q failed: %v", fd.Filename, err)
+		}
+	}
 
 	return fd, nil
 }

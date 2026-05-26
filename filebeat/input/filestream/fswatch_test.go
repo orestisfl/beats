@@ -1219,6 +1219,7 @@ scanner:
 			cfg,
 			CompressionNone,
 			false,
+			false,
 			mustPathIdentifier(false),
 			mustSourceIdentifier("foo-id"),
 		)
@@ -1241,7 +1242,7 @@ scanner:
 			Fingerprint: fingerprintConfig{Enabled: false},
 		}
 		inMemoryLog, buff := logp.NewInMemoryLocal("", logp.JSONEncoderConfig())
-		s, err := newFileScanner(inMemoryLog, []string{filepath.Join(dir, "*.log")}, cfg, CompressionNone)
+		s, err := newFileScanner(inMemoryLog, []string{filepath.Join(dir, "*.log")}, cfg, CompressionNone, false)
 		require.NoError(t, err)
 
 		files := s.GetFiles()
@@ -1273,7 +1274,7 @@ scanner:
 			Fingerprint: fingerprintConfig{Enabled: false},
 		}
 		inMemoryLog, buff := logp.NewInMemoryLocal("", logp.JSONEncoderConfig())
-		s, err := newFileScanner(inMemoryLog, []string{filepath.Join(dir, "*.log")}, cfg, CompressionNone)
+		s, err := newFileScanner(inMemoryLog, []string{filepath.Join(dir, "*.log")}, cfg, CompressionNone, false)
 		require.NoError(t, err)
 
 		files := s.GetFiles()
@@ -1311,7 +1312,7 @@ func BenchmarkGetFiles(b *testing.B) {
 			Enabled: false,
 		},
 	}
-	s, err := newFileScanner(logp.NewNopLogger(), paths, cfg, CompressionNone)
+	s, err := newFileScanner(logp.NewNopLogger(), paths, cfg, CompressionNone, false)
 	require.NoError(b, err)
 
 	for i := 0; i < b.N; i++ {
@@ -1339,7 +1340,7 @@ func BenchmarkGetFilesWithFingerprint(b *testing.B) {
 		},
 	}
 
-	s, err := newFileScanner(logp.NewNopLogger(), paths, cfg, CompressionNone)
+	s, err := newFileScanner(logp.NewNopLogger(), paths, cfg, CompressionNone, false)
 	require.NoError(b, err)
 
 	for i := 0; i < b.N; i++ {
@@ -1366,6 +1367,7 @@ func createWatcherWithConfig(t *testing.T, logger *logp.Logger, paths []string, 
 		tmpCfg.Scaner,
 		CompressionNone,
 		false,
+		false,
 		mustPathIdentifier(false),
 		mustSourceIdentifier("foo-id"),
 	)
@@ -1385,7 +1387,7 @@ func createScannerWithConfig(t *testing.T, logger *logp.Logger, paths []string, 
 	config := defaultFileWatcherConfig()
 	err = ns.Config().Unpack(&config)
 	require.NoError(t, err)
-	scanner, err := newFileScanner(logger, paths, config.Scanner, compression)
+	scanner, err := newFileScanner(logger, paths, config.Scanner, compression, false)
 	require.NoError(t, err)
 
 	return scanner
@@ -1438,7 +1440,7 @@ func TestGetIngestTarget(t *testing.T) {
 			Symlinks:    false,
 			Fingerprint: fingerprintConfig{Enabled: false},
 		}
-		s, err := newFileScanner(logp.NewNopLogger(), []string{filepath.Join(dir, "*.log")}, cfg, CompressionNone)
+		s, err := newFileScanner(logp.NewNopLogger(), []string{filepath.Join(dir, "*.log")}, cfg, CompressionNone, false)
 		require.NoError(t, err)
 
 		_, err = s.getIngestTarget(filename)
@@ -1459,7 +1461,7 @@ func TestGetIngestTarget(t *testing.T) {
 			Symlinks:    true,
 			Fingerprint: fingerprintConfig{Enabled: false},
 		}
-		s, err := newFileScanner(logp.NewNopLogger(), []string{filepath.Join(dir, "*.log")}, cfg, CompressionNone)
+		s, err := newFileScanner(logp.NewNopLogger(), []string{filepath.Join(dir, "*.log")}, cfg, CompressionNone, false)
 		require.NoError(t, err)
 
 		_, err = s.getIngestTarget(link)
@@ -1484,7 +1486,7 @@ func TestToFileDescriptor_TooSmallFile_NoFileOpen(t *testing.T) {
 		},
 	}
 
-	s, err := newFileScanner(logp.NewNopLogger(), []string{filename}, cfg, CompressionNone)
+	s, err := newFileScanner(logp.NewNopLogger(), []string{filename}, cfg, CompressionNone, false)
 	require.NoError(t, err, "failed to create scanner")
 	it, err := s.getIngestTarget(filename)
 	require.NoError(t, err, "getIngestTarget should succeed")
@@ -1514,7 +1516,7 @@ func BenchmarkToFileDescriptor(b *testing.B) {
 		},
 	}
 
-	s, err := newFileScanner(logp.NewNopLogger(), paths, cfg, CompressionNone)
+	s, err := newFileScanner(logp.NewNopLogger(), paths, cfg, CompressionNone, false)
 	require.NoError(b, err)
 
 	it, err := s.getIngestTarget(filename)

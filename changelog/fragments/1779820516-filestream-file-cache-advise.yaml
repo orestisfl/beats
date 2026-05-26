@@ -1,0 +1,19 @@
+kind: enhancement
+
+summary: add filestream `file_cache_advise` option to keep tracked-file pages out of `working_set` on Linux
+
+description: |
+  Adds an opt-in `file_cache_advise` boolean option to the `filestream` input.
+  When enabled on Linux, filebeat hints the kernel (via `posix_fadvise(2)`
+  with `POSIX_FADV_DONTNEED`) that pages it has just read from tracked log
+  files can be dropped from the page cache. This prevents the harvester's
+  consumed range and the prospector's per-tick fingerprint reads from being
+  promoted to the active LRU and inflating
+  `container_memory_working_set_bytes` in Kubernetes, which is used for
+  HPA memory autoscaling and node-pressure eviction. The option is a no-op
+  on non-Linux platforms.
+
+component: filebeat
+
+# pr: https://github.com/elastic/beats/pull/<TBD>
+# issue: https://github.com/elastic/ingest-dev/issues/7824

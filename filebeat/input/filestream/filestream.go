@@ -43,6 +43,12 @@ var (
 	ErrInactive     = errors.New("inactive file, reader closed")
 )
 
+// fadviseChunkSize is the number of bytes that must be consumed from a file
+// before another posix_fadvise(POSIX_FADV_DONTNEED) call is issued. It bounds
+// the page-cache footprint of a long sequential read while amortising the
+// syscall cost across many small reads.
+const fadviseChunkSize int64 = 1 << 20 // 1 MiB
+
 // logFile contains all log related data
 type logFile struct {
 	file      File
@@ -68,6 +74,20 @@ type logFile struct {
 
 	backoff backoff.Backoff
 	tg      *unison.TaskGroup
+
+	// fileCacheAdvise enables posix_fadvise(POSIX_FADV_DONTNEED) on the
+	// already-consumed range of the underlying file. While reading we advise
+	// in fadviseChunkSize-sized chunks; on EOF and Close we advise the entire
+	// file so that the kernel also evicts any read-ahead pages it loaded
+	// beyond our current offset. lastAdvisedOffset tracks the highest offset
+	// that has been advised, by either the chunked or the full path.
+	//
+	// Both fields are accessed without the offset mutex: lastAdvisedOffset
+	// because Close runs after Read returns and we want to read it from the
+	// advise path without contending with offset updates; fileCacheAdvise
+	// because it may be cleared from the advise path on syscall failure.
+	fileCacheAdvise   atomic.Bool
+	lastAdvisedOffset atomic.Int64
 }
 
 // newFileReader creates a new log instance to read log sources
@@ -77,6 +97,7 @@ func newFileReader(
 	f File,
 	config readerConfig,
 	closerConfig closerConfig,
+	fileCacheAdvise bool,
 ) (*logFile, error) {
 	offset, err := f.Seek(0, io.SeekCurrent)
 	if err != nil {
@@ -85,6 +106,10 @@ func newFileReader(
 
 	readerCtx := ctxtool.WithCancelContext(ctxtool.FromCanceller(canceler))
 	tg := unison.TaskGroupWithCancel(readerCtx)
+
+	// Only enable fadvise for plain files; for gzip the tracked offset is on
+	// the decompressed stream and does not match the underlying file offset.
+	cacheAdvise := fileCacheAdvise && !f.IsGZIP()
 
 	l := &logFile{
 		file:               f,
@@ -101,6 +126,8 @@ func newFileReader(
 		readerCtx:          readerCtx,
 		tg:                 tg,
 	}
+	l.fileCacheAdvise.Store(cacheAdvise)
+	l.lastAdvisedOffset.Store(offset)
 
 	l.startFileMonitoringIfNeeded()
 
@@ -119,6 +146,7 @@ func (f *logFile) Read(buf []byte) (int, error) {
 		n, err := f.file.Read(buf)
 		if n > 0 {
 			f.updateOffset(n)
+			f.adviseChunk()
 		}
 		totalN += n
 
@@ -140,6 +168,13 @@ func (f *logFile) Read(buf []byte) (int, error) {
 		if err != nil || len(buf) == 0 {
 			return totalN, err
 		}
+
+		// We hit EOF in tailing mode and are about to sleep waiting for new
+		// data. Drop any pages we've consumed (including kernel read-ahead
+		// pages past our offset) so they don't sit in active_file across the
+		// backoff window. Re-advising on every EOF cycle is cheap when there
+		// is nothing new to drop.
+		f.adviseFull()
 
 		f.log.Debugf("End of file reached: %s; Backoff now.", f.file.Name())
 		f.backoff.Wait()
@@ -300,6 +335,11 @@ func (f *logFile) handleEOF() error {
 // Close
 func (f *logFile) Close() error {
 	f.readerCtx.Cancel()
+	// Drop the whole file from the page cache before closing. This also evicts
+	// any read-ahead pages the kernel loaded past our current offset, which
+	// the chunked advise path cannot reach. Must run before file.Close() so
+	// the fd is still valid.
+	f.adviseFull()
 	err := f.file.Close()
 	_ = f.tg.Stop() // Wait until all resources are released for sure.
 	f.log.Debugf("Closed reader. Path='%s'", f.file.Name())
@@ -312,4 +352,67 @@ func (f *logFile) updateOffset(delta int) {
 	f.offset += int64(delta)
 	f.lastTimeRead = time.Now()
 	f.offsetMutx.Unlock()
+}
+
+// adviseChunk drops cached pages for the consumed range since the last
+// advise, but only if at least fadviseChunkSize bytes have accumulated. This
+// keeps the page-cache footprint of a long sequential read bounded.
+func (f *logFile) adviseChunk() {
+	if !f.fileCacheAdvise.Load() {
+		return
+	}
+
+	f.offsetMutx.Lock()
+	currentOffset := f.offset
+	f.offsetMutx.Unlock()
+
+	lastAdvised := f.lastAdvisedOffset.Load()
+	length := currentOffset - lastAdvised
+	if length < fadviseChunkSize {
+		return
+	}
+
+	if !f.advise(lastAdvised, length) {
+		return
+	}
+	f.lastAdvisedOffset.Store(currentOffset)
+}
+
+// adviseFull drops the entire file from the page cache. Unlike adviseChunk
+// this also covers kernel read-ahead pages past our current offset and any
+// pages we couldn't reach with the chunked path (residual < fadviseChunkSize).
+// Used at EOF (about to backoff) and on Close. No-op if nothing was consumed
+// since the last successful advise, which makes repeated EOF/backoff cycles
+// on an idle tailed file free.
+func (f *logFile) adviseFull() {
+	if !f.fileCacheAdvise.Load() {
+		return
+	}
+
+	f.offsetMutx.Lock()
+	currentOffset := f.offset
+	f.offsetMutx.Unlock()
+
+	if currentOffset == f.lastAdvisedOffset.Load() {
+		return
+	}
+
+	// length=0 means "from offset to end of file" on Linux.
+	if !f.advise(0, 0) {
+		return
+	}
+	f.lastAdvisedOffset.Store(currentOffset)
+}
+
+// advise issues a single posix_fadvise(POSIX_FADV_DONTNEED) call. On error it
+// logs once and disables further advise calls on this reader to avoid log
+// spam (e.g. when the filesystem does not implement fadvise). It returns
+// false in that case.
+func (f *logFile) advise(offset, length int64) bool {
+	if err := fadviseDontNeed(f.file.OSFile(), offset, length); err != nil {
+		f.log.Warnf("posix_fadvise(FADV_DONTNEED) failed, disabling for this file: %v", err)
+		f.fileCacheAdvise.Store(false)
+		return false
+	}
+	return true
 }

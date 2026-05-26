@@ -49,6 +49,7 @@ func TestLogFileRenamed(t *testing.T) {
 				Renamed:       true,
 			},
 		},
+		false,
 	)
 	if err != nil {
 		t.Fatalf("error while creating logReader: %+v", err)
@@ -84,6 +85,7 @@ func TestLogFileRemoved(t *testing.T) {
 				Removed:       true,
 			},
 		},
+		false,
 	)
 	if err != nil {
 		t.Fatalf("error while creating logReader: %+v", err)
