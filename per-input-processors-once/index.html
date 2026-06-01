@@ -136,16 +136,16 @@
     <a href="#subtleties">7 · Three subtleties</a>
     <div class="grp">Context</div>
     <a href="#twofixes">8 · Two PRs, two strategies</a>
-    <a href="#tests">9 · Tests that lock it</a>
+    <a href="#tests">9 · Tests</a>
     <a href="#behavior">10 · Behavioral change</a>
-    <a href="#map">File map</a>
+    <a href="#map">Why each file changes</a>
   </nav>
 
   <main>
     <div class="hero">
       <span class="tag">filebeat · processing pipeline</span>
       <h1>Build per-input processors <em>once</em>, not once per harvester</h1>
-      <p class="lead muted">A single <code class="inline">add_kubernetes_metadata</code> processor was being rebuilt for <b>every log file</b> Filebeat tailed. With thousands of Kubernetes container logs that meant thousands of Kubernetes API watchers — and a 13× memory blow-up. This page explains the bug, the pipeline architecture around it, and exactly how this branch fixes it.</p>
+      <p class="lead muted">A single <code class="inline">add_kubernetes_metadata</code> processor was being rebuilt for <b>every log file</b> Filebeat tailed. With thousands of Kubernetes container logs that meant thousands of Kubernetes API watchers, and ~13× the memory. This page covers the bug, the surrounding pipeline architecture, and how this branch fixes it.</p>
       <div class="pillrow">
         <span class="pill">issue <b>#50376</b></span>
         <span class="pill">PR <b>#50611</b> (draft)</span>
@@ -175,10 +175,10 @@
 
     <!-- ============================ GLOSSARY ============================ -->
     <section id="glossary">
-      <h2>Glossary — the five words that unlock this PR</h2>
-      <p class="muted">The pipeline, runners and config editors can be unfamiliar at first. These five concepts are all that's needed; everything below is built from them.</p>
+      <h2>Glossary — concepts used below</h2>
+      <p class="muted">The pipeline, runners, and config editors can be unfamiliar at first; here are the five concepts the rest of the page uses.</p>
       <table>
-        <tr><th style="width:170px">Term</th><th>What it actually is</th><th style="width:240px">Where it lives</th></tr>
+        <tr><th style="width:170px">Term</th><th>What it is</th><th style="width:240px">Where it lives</th></tr>
         <tr>
           <td><b>Input</b></td>
           <td>One <code class="inline">- type: filestream</code> block in the config. It can tail many files at once.</td>
@@ -206,15 +206,15 @@
         </tr>
       </table>
       <div class="callout">
-        <span class="lbl">The one sentence to remember</span>
-        The bug is simply: <b>"processor = per file"</b> when it should have been <b>"processor = per input"</b>. Everything else is plumbing to make that change safe.
+        <span class="lbl">In one line</span>
+        The bug: a processor is built <b>per file</b> when it should be built <b>per input</b>. The rest is making that change safe.
       </div>
     </section>
 
     <!-- ============================ SYMPTOM ============================ -->
     <section id="symptom">
       <h2>1 · The symptom (issue #50376)</h2>
-      <p>A user moved Kubernetes log collection from the deprecated <code class="inline">container</code> input to <code class="inline">filestream</code>, keeping a near-identical config with one <code class="inline">add_kubernetes_metadata</code> processor. Filebeat "started blowing up." Same machine, ~41 log files, same processor — wildly different resource use:</p>
+      <p>A user moved Kubernetes log collection from the deprecated <code class="inline">container</code> input to <code class="inline">filestream</code> with a near-identical <code class="inline">add_kubernetes_metadata</code> config; on the same host (~41 files), resource use differed sharply:</p>
       <table>
         <tr><th>Metric</th><th class="num">container input</th><th class="num">filestream input</th><th class="num">Δ</th></tr>
         <tr><td>RSS memory</td><td class="num">170 MB</td><td class="num">1 154 MB</td><td class="num delta-bad">6.8×</td></tr>
@@ -224,8 +224,8 @@
         <tr><td>Heap alloc</td><td class="num">38 MB</td><td class="num">670 MB</td><td class="num delta-bad">17×</td></tr>
       </table>
       <div class="callout bad">
-        <span class="lbl">The tell-tale</span>
-        Goroutines and memory scale with the <b>number of files</b>, not the volume of logs. That is the fingerprint of "we built something per-file that should have been per-input." The stateful culprit here is <code class="inline">add_kubernetes_metadata</code>, which on construction starts a Kubernetes watcher (informers, caches, goroutines).
+        <span class="lbl">Diagnosis</span>
+        Goroutines and memory scale with the <b>number of files</b>, not log volume — the mark of per-file work that should be per-input. The culprit is <code class="inline">add_kubernetes_metadata</code>, which starts a Kubernetes watcher (informers, caches, goroutines) on construction.
       </div>
       <p class="muted">Why didn't <code class="inline">container</code> show it? It is implemented on the older log-input model with a different connection pattern, so the per-client construction cost was not multiplied the same way. Filestream's clean "one client per harvester" model is what exposed the latent cost.</p>
     </section>
@@ -307,7 +307,7 @@
           <line x1="340" y1="420" x2="638" y2="410" stroke="#7ee787" marker-end="url(#arrG)"/>
           <text x="430" y="465" fill="#7ee787">edited ClientConfig.Processing.Processor</text>
         </svg>
-        <figcaption>The path of one filestream input. The orange <b>ConfigEditor</b> is invoked once for <em>every</em> harvester's <code>ConnectWith</code> — that frequency is the whole story.</figcaption>
+        <figcaption>The path of one filestream input. The orange <b>ConfigEditor</b> runs once per harvester <code>ConnectWith</code>.</figcaption>
         <div class="legend">
           <span><span class="swatch" style="background:#58a6ff"></span> control / creation</span>
           <span><span class="swatch" style="background:#f0a35e"></span> per-client (hot) path</span>
@@ -481,7 +481,7 @@
 }</pre>
 
       <div class="callout bad">
-        <span class="lbl">The defect, precisely</span>
+        <span class="lbl">The defect</span>
         <code class="inline">processors.New(...)</code> calls each processor's constructor. For <code class="inline">add_kubernetes_metadata</code> that constructor starts a Kubernetes watcher. Because the call sits inside the per-client editor, <b>N harvesters ⇒ N watchers ⇒ N×(goroutines + caches + API connections)</b>.
       </div>
 
@@ -518,7 +518,7 @@
     <!-- ============================ APPROACH ============================ -->
     <section id="approach">
       <h2>4 · This branch's approach — hoist construction out of the closure</h2>
-      <p>The fix is conceptually tiny: build the processors <b>once</b>, before the editor closure, and have every client reference the same instances. The closure now only <em>wraps and attaches</em> the already-built processors.</p>
+      <p>The fix: build the processors <b>once</b>, before the editor closure, so every client references the same instances. The closure now only <em>wraps and attaches</em> them.</p>
 
       <div class="tabs" data-tabs="ce">
         <button class="active" data-tab="ce1">newCommonConfigEditor</button>
@@ -617,7 +617,7 @@
     <!-- ============================ WRAPPER ============================ -->
     <section id="wrapper">
       <h2>5 · The <code style="font-size:.8em">sharedProcessor</code> wrapper — a run-only view</h2>
-      <p>Why wrap at all? Because the <b>per-client processing group</b> owns its members' lifecycle: when a harvester's client closes, the group calls <code class="inline">Close()</code> on each processor, and at build time the group calls <code class="inline">SetPaths()</code>. Both are wrong for a <em>shared</em> instance — the first harvester to stop would tear down state the others still need.</p>
+      <p>The <b>per-client processing group</b> owns its members' lifecycle: when a harvester's client closes, the group calls <code class="inline">Close()</code> on each processor, and at build time it calls <code class="inline">SetPaths()</code>. Both are wrong for a <em>shared</em> instance — the first harvester to stop would tear down state the others still need.</p>
 
       <p class="fileref">filebeat/channel/runner.go:170</p>
       <pre><span class="c">// sharedProcessor is a run-only view of an input-owned processor.</span>
@@ -632,11 +632,11 @@
 <span class="k">var</span> _ beat.Processor = sharedProcessor{}</pre>
 
       <div class="callout good">
-        <span class="lbl">The trick is Go interface embedding</span>
+        <span class="lbl">How it works: interface embedding</span>
         By embedding the narrow <code class="inline">beat.Processor</code> interface (not the concrete type), the wrapper <b>only</b> satisfies <code class="inline">Run</code> and <code class="inline">String</code>. A type-assertion like <code class="inline">p.(processors.Closer)</code> or <code class="inline">p.(processors.PathSetter)</code> <b>fails</b>, so the group's close/setpaths loops simply skip it. Closing becomes a safe no-op.
       </div>
 
-      <p>This is not a novel pattern — it mirrors how <b>pipeline-global</b> processors are already protected from client close, by wrapping them as a function processor:</p>
+      <p>It mirrors how <b>pipeline-global</b> processors are already protected from client close, by wrapping them as a function processor:</p>
       <p class="fileref">libbeat/publisher/processing/default.go:382 — the pattern this branch copies, one level down</p>
       <pre>  <span class="k">if</span> b.processors != <span class="k">nil</span> {
       <span class="c">// function processor hides implementation of processors.PathSetter</span>
@@ -714,7 +714,7 @@
 
     <!-- ============================ SUBTLETIES ============================ -->
     <section id="subtleties">
-      <h2>7 · Three subtleties that make it correct</h2>
+      <h2>7 · Three subtleties</h2>
 
       <div class="card">
         <h4>① Hiding <code class="inline">Close</code> would silently break path-aware processors — so paths move too</h4>
@@ -760,7 +760,7 @@
     <!-- ============================ TWO FIXES ============================ -->
     <section id="twofixes">
       <h2>8 · Two PRs, two strategies for the same root cause</h2>
-      <p>This is the part worth understanding for the review: there are <b>two</b> independent fixes for issue #50376, and they coexist in the tree.</p>
+      <p>There are <b>two</b> independent fixes for issue #50376, and both are in the tree.</p>
       <div class="grid2">
         <div class="card">
           <h4 style="color:var(--purple)">PR #50713 — opt-in, per processor <span class="muted">(merged)</span></h4>
@@ -783,16 +783,16 @@ userProcs, _ := processors.<span class="f">New</span>(cfg, log)
       </div>
       <div class="callout">
         <span class="lbl">How to think about them</span>
-        #50713 is a targeted <b>de-duplication</b> at the constructor; #50611 is the <b>structural</b> "don't construct per client in the first place." They are complementary: #50713 already shipped to stop the bleeding; #50611 removes the root so future stateful processors are safe without opting in.
+        #50713 is a targeted <b>de-duplication</b> at the constructor; #50611 is the <b>structural</b> "don't construct per client in the first place." They are complementary: #50713 shipped first as a targeted fix; #50611 removes the root cause so future stateful processors are safe without opting in.
       </div>
     </section>
 
     <!-- ============================ TESTS ============================ -->
     <section id="tests">
-      <h2>9 · Tests that lock the contract</h2>
+      <h2>9 · Tests covering the change</h2>
       <p class="fileref">filebeat/channel/runner_test.go</p>
       <table>
-        <tr><th>Test</th><th>Guarantee it pins down</th></tr>
+        <tr><th>Test</th><th>What it verifies</th></tr>
         <tr><td><code class="inline">TestSharedProcessorsAcrossClients</code></td><td>Two clients of the same input receive the <b>same</b> underlying processor instances — the core "build once" promise.</td></tr>
         <tr><td><code class="inline">TestSharedProcessorHidesLifecycleMethods</code></td><td><code class="inline">sharedProcessor</code> does <b>not</b> implement <code class="inline">Closer</code> or <code class="inline">PathSetter</code>; <code class="inline">Close</code> is a no-op on the inner; <code class="inline">Run/String</code> still forward.</td></tr>
         <tr><td><code class="inline">TestInputProcessorPathsSetOnce</code></td><td><code class="inline">SetPaths</code> is called exactly once at build time; a per-client close neither closes nor re-paths the shared instance; the input close closes it once.</td></tr>
@@ -825,15 +825,16 @@ go test -v -race -run <span class="s">'TestShared|TestInputProcessorPathsSetOnce
 
     <!-- ============================ MAP ============================ -->
     <section id="map">
-      <h2>File map — everything this branch touches</h2>
+      <h2>Why each file changes</h2>
+      <p class="muted">The diff shows what changed; this is the per-file rationale it can't.</p>
       <table>
-        <tr><th>File</th><th>Δ</th><th>What changed</th></tr>
-        <tr><td><code class="inline">filebeat/channel/runner.go</code></td><td class="muted">core</td><td>Build processors once; <code class="inline">sharedProcessor</code> wrapper; <code class="inline">runnerWithSharedProcessors</code> (idempotent Stop + forwarders); split <code class="inline">newConfigEditor</code>.</td></tr>
-        <tr><td><code class="inline">libbeat/processors/processor.go</code></td><td class="muted">+13</td><td>New <code class="inline">Processors.SetPaths</code> — the counterpart to <code class="inline">Close</code> for path init.</td></tr>
-        <tr><td><code class="inline">filebeat/input/input.go</code></td><td class="muted">doc</td><td><code class="inline">SetOnce</code> doc clarified (runner may be wrapped).</td></tr>
-        <tr><td><code class="inline">filebeat/beater/crawler.go</code></td><td class="muted">small</td><td>Cleanups around the once/factory wiring (the "Simplify" commit).</td></tr>
-        <tr><td><code class="inline">filebeat/channel/runner_test.go</code> &amp; <code class="inline">runner_mock_test.go</code></td><td class="muted">tests</td><td>New tests above; drop the global test plugin in favour of direct injection.</td></tr>
-        <tr><td><code class="inline">x-pack/filebeat/tests/integration/managerV2_test.go</code></td><td class="muted">int. test</td><td>filestream/aws-s3 now fail-fast on bad processor config.</td></tr>
+        <tr><th>File</th><th>Why</th></tr>
+        <tr><td><code class="inline">filebeat/channel/runner.go</code></td><td>Build processors once; <code class="inline">sharedProcessor</code> wrapper; <code class="inline">runnerWithSharedProcessors</code> (idempotent Stop + forwarders); split <code class="inline">newConfigEditor</code>.</td></tr>
+        <tr><td><code class="inline">libbeat/processors/processor.go</code></td><td>New <code class="inline">Processors.SetPaths</code> — the counterpart to <code class="inline">Close</code> for path init.</td></tr>
+        <tr><td><code class="inline">filebeat/input/input.go</code></td><td><code class="inline">SetOnce</code> doc clarified (runner may be wrapped).</td></tr>
+        <tr><td><code class="inline">filebeat/beater/crawler.go</code></td><td>Cleanups around the once/factory wiring.</td></tr>
+        <tr><td><code class="inline">filebeat/channel/runner_test.go</code> &amp; <code class="inline">runner_mock_test.go</code></td><td>New tests above; drop the global test plugin in favour of direct injection.</td></tr>
+        <tr><td><code class="inline">x-pack/filebeat/tests/integration/managerV2_test.go</code></td><td>filestream/aws-s3 now fail-fast on bad processor config.</td></tr>
       </table>
     </section>
 
