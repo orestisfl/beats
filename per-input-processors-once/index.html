@@ -253,21 +253,21 @@
           </defs>
 
           <!-- config -->
-          <g class="hot" data-loc="filebeat.yml" data-desc="One - type: filestream block — the input config.">
+          <g class="hot" data-loc="config.Inputs / filebeat.config.inputs" data-desc="Each block becomes one input ⇒ one Runner; parsers, take_over, and processors live here.">
           <rect x="20" y="20" width="200" height="56" rx="8" fill="#1c2330" stroke="#2b3340"/>
           <text x="120" y="44" fill="#fff" text-anchor="middle">filebeat.yml</text>
           <text x="120" y="62" fill="#93a1b3" text-anchor="middle">- type: filestream</text>
           </g>
 
           <!-- crawler -->
-          <g class="hot" data-loc="filebeat/beater/crawler.go:138" data-desc="inputsFactory.Create(pipeline, config) per input, then runner.Start().">
+          <g class="hot" data-loc="startInput → hashstructure ID" data-desc="Hashes the config as the input ID, rejects duplicates, and opts into --once via OnceSetter before Start().">
           <rect x="20" y="120" width="200" height="64" rx="8" fill="#1c2330" stroke="#2b3340"/>
           <text x="120" y="146" fill="#fff" text-anchor="middle">crawler.startInput()</text>
           <text x="120" y="166" fill="#93a1b3" text-anchor="middle">crawler.go:138</text>
           </g>
 
           <!-- factory -->
-          <g class="hot" data-loc="filebeat/beater/filebeat.go:408 → filebeat/channel/runner.go" data-desc="Wires RunnerFactoryWithCommonInputSettings as the input loader.">
+          <g class="hot" data-loc="commonSettingsFactory.Create" data-desc="Wraps the runner as runnerWithSharedProcessors only when the input has shared processors; bare runner otherwise.">
           <rect x="20" y="232" width="320" height="86" rx="8" fill="#161b22" stroke="#bc8cff66"/>
           <text x="180" y="256" fill="#bc8cff" text-anchor="middle">RunnerFactoryWithCommonInputSettings</text>
           <text x="180" y="276" fill="#93a1b3" text-anchor="middle">filebeat.go:408 → channel/runner.go</text>
@@ -275,7 +275,7 @@
           </g>
 
           <!-- editor -->
-          <g class="hot" data-loc="filebeat/channel/runner.go:242" data-desc="The closure that builds each client's processor list; runs on every ConnectWith.">
+          <g class="hot" data-loc="runner.go:242 — the closure" data-desc="Attaches sharedProcessor{} views of the once-built processors; the same instances for every client.">
           <rect x="20" y="360" width="320" height="86" rx="8" fill="#161b22" stroke="#f0a35e88"/>
           <text x="180" y="384" fill="#f0a35e" text-anchor="middle">ConfigEditor closure</text>
           <text x="180" y="404" fill="#93a1b3" text-anchor="middle">runs on EVERY ConnectWith</text>
@@ -283,14 +283,14 @@
           </g>
 
           <!-- runner -->
-          <g class="hot" data-loc="cfgfile.Runner (wrapped by runnerWithSharedProcessors)" data-desc="Start()/Stop() a single input.">
+          <g class="hot" data-loc="*input.Runner (filestream, tcp, …)" data-desc="Stop() here is not idempotent on its own — the wrapper adds sync.Once. Spawns one harvester per file.">
           <rect x="380" y="120" width="200" height="64" rx="8" fill="#1c2330" stroke="#2b3340"/>
           <text x="480" y="146" fill="#fff" text-anchor="middle">input Runner</text>
           <text x="480" y="166" fill="#93a1b3" text-anchor="middle">Start() / Stop()</text>
           </g>
 
           <!-- harvesters -->
-          <g class="hot" data-loc="filestream/internal/input-logfile/harvester.go:290" data-desc="hg.pipeline.ConnectWith(...) — one pipeline client per file.">
+          <g class="hot" data-loc="harvester.go:290" data-desc="Each Run() calls hg.pipeline.ConnectWith(...) and defers client.Close() — this is what triggers the editor.">
           <rect x="640" y="60" width="250" height="46" rx="8" fill="#1c2330" stroke="#2b3340"/>
           <text x="765" y="88" fill="#fff" text-anchor="middle">harvester (file A) → client A</text>
           <rect x="640" y="120" width="250" height="46" rx="8" fill="#1c2330" stroke="#2b3340"/>
@@ -301,7 +301,7 @@
           </g>
 
           <!-- processing group -->
-          <g class="hot" data-loc="libbeat/publisher/processing/processors.go:36" data-desc="Runs the client's processors and Close()s them when the client closes.">
+          <g class="hot" data-loc="processors.go:36 · group.Close" data-desc="On client.Close() it calls processors.Close() on every member — why shared procs must hide Closer.">
           <rect x="640" y="360" width="250" height="86" rx="8" fill="#161b22" stroke="#2b3340"/>
           <text x="765" y="386" fill="#fff" text-anchor="middle">per-client processing.group</text>
           <text x="765" y="406" fill="#93a1b3" text-anchor="middle">publisher/processing</text>
@@ -335,7 +335,7 @@
         </div>
       </figure>
 
-      <p class="muted" style="font-size:13px">Hover or tap any box above for its source file and role.</p>
+      <p class="muted" style="font-size:13px">Hover or tap any box for extra detail it doesn't show.</p>
     </section>
 
     <!-- ============================ CALL GRAPH ABOVE ============================ -->
@@ -352,19 +352,19 @@
 
           <!-- band 1: config sources -->
           <text x="10" y="16" fill="#5b6675">config sources</text>
-          <g class="hot" data-loc="Elastic Agent / Fleet" data-desc="Pushes input unit configs to the Beat's central management (managed path).">
+          <g class="hot" data-loc="CheckinExpected → units" data-desc="Unit configs carry InputUnitID; Create/Stop errors are reported back to Fleet per unit.">
           <rect x="20" y="24" width="270" height="48" rx="8" fill="#1c2330" stroke="#bc8cff66"/>
           <text x="155" y="44" fill="#bc8cff" text-anchor="middle">Elastic Agent / Fleet</text>
           <text x="155" y="62" fill="#93a1b3" text-anchor="middle">pushes input units</text>
           </g>
 
-          <g class="hot" data-loc="filebeat.yml · config.inputs" data-desc="External input file, hot-reloaded by the standalone reloader.">
+          <g class="hot" data-loc="standalone dynamic inputs" data-desc="Diff-applied through RunnerList on each file change — the reloadable path, not the static one.">
           <rect x="325" y="24" width="270" height="48" rx="8" fill="#1c2330" stroke="#2b3340"/>
           <text x="460" y="44" fill="#fff" text-anchor="middle">filebeat.config.inputs</text>
           <text x="460" y="62" fill="#93a1b3" text-anchor="middle">external file, hot-reloaded</text>
           </g>
 
-          <g class="hot" data-loc="filebeat.yml · inputs" data-desc="Inline static inputs, loaded once at startup by the crawler.">
+          <g class="hot" data-loc="config.Inputs (startup)" data-desc="Loaded once by the crawler; never goes through RunnerList.">
           <rect x="630" y="24" width="270" height="48" rx="8" fill="#1c2330" stroke="#2b3340"/>
           <text x="765" y="44" fill="#fff" text-anchor="middle">filebeat.inputs (static)</text>
           <text x="765" y="62" fill="#93a1b3" text-anchor="middle">inline in filebeat.yml</text>
@@ -372,19 +372,19 @@
 
           <!-- band 2: adapters -->
           <text x="10" y="104" fill="#5b6675">adapters</text>
-          <g class="hot" data-loc="x-pack/libbeat/management/managerV2.go:926" data-desc="reloadInputs() → obj.Reload(inputBeatCfgs) on the RunnerList.">
+          <g class="hot" data-loc="registers RunnerList as reload.Reloadable" data-desc="Calls obj.Reload(inputBeatCfgs); an input error sets forceReload to retry the apply.">
           <rect x="20" y="112" width="270" height="52" rx="8" fill="#161b22" stroke="#2b3340"/>
           <text x="155" y="134" fill="#fff" text-anchor="middle">management.managerV2</text>
           <text x="155" y="152" fill="#93a1b3" text-anchor="middle">reloadInputs() · managerV2.go:926</text>
           </g>
 
-          <g class="hot" data-loc="libbeat/cfgfile/reload.go" data-desc="Reloader.Run() watches the file and calls list.Reload(configs) on every change.">
+          <g class="hot" data-loc="Reloader.Run → list.Reload" data-desc="Polls the configured glob and diff-applies changes via the RunnerList.">
           <rect x="325" y="112" width="270" height="52" rx="8" fill="#161b22" stroke="#2b3340"/>
           <text x="460" y="134" fill="#fff" text-anchor="middle">cfgfile.Reloader.Run()</text>
           <text x="460" y="152" fill="#93a1b3" text-anchor="middle">reload.go · watches the file</text>
           </g>
 
-          <g class="hot" data-loc="filebeat/beater/crawler.go:138" data-desc="One-shot: inputsFactory.Create(pipeline, config) then runner.Start() for static inputs.">
+          <g class="hot" data-loc="bypasses RunnerList" data-desc="One Create()+Start() per static input, directly — no hash-diff engine.">
           <rect x="630" y="112" width="270" height="52" rx="8" fill="#161b22" stroke="#2b3340"/>
           <text x="765" y="134" fill="#fff" text-anchor="middle">crawler.startInput()</text>
           <text x="765" y="152" fill="#93a1b3" text-anchor="middle">crawler.go:138 · one-shot</text>
@@ -392,7 +392,7 @@
 
           <!-- band 3: driver -->
           <text x="10" y="200" fill="#5b6675">drivers (call Create / Start / Stop)</text>
-          <g class="hot" data-loc="libbeat/cfgfile/list.go:82" data-desc="Diffs configs by hash → removed: runner.Stop() (119); new: factory.Create() (244) + runner.Start() (160).">
+          <g class="hot" data-loc="stops removed concurrently, then starts" data-desc="Waits for all removed runners to Stop before starting new ones; wires SetStatusReporter (154) and per-unit Create errors (141).">
           <rect x="120" y="208" width="470" height="74" rx="8" fill="#161b22" stroke="#f0a35e88"/>
           <text x="355" y="232" fill="#f0a35e" text-anchor="middle">cfgfile.RunnerList.Reload()  ·  list.go:82</text>
           <text x="355" y="252" fill="#d7dee8" text-anchor="middle">diff desired vs running configs by hash</text>
@@ -403,7 +403,7 @@
 
           <!-- band 4: factory (this area) -->
           <text x="10" y="318" fill="#5b6675">the factory (this PR)</text>
-          <g class="hot" data-loc="filebeat/beater/filebeat.go:408" data-desc="Wraps compat.Combine(v2 loader, legacy input factory); also feeds fileset.NewFactory for module inputs.">
+          <g class="hot" data-loc="also feeds fileset.NewFactory" data-desc="Modules reuse the same factory; an OTel status wrapper may wrap it again.">
           <rect x="120" y="326" width="680" height="70" rx="8" fill="#161b22" stroke="#bc8cff"/>
           <text x="460" y="350" fill="#bc8cff" text-anchor="middle">RunnerFactoryWithCommonInputSettings  ·  filebeat.go:408</text>
           <text x="460" y="370" fill="#d7dee8" text-anchor="middle">wraps compat.Combine( v2 loader , legacy input factory )</text>
@@ -411,19 +411,19 @@
           </g>
 
           <!-- band 5: wrapper -->
-          <g class="hot" data-loc="filebeat/channel/runner.go:119" data-desc="Wraps the runner so Stop() releases the shared per-input processors, once.">
+          <g class="hot" data-loc="runner.go:119" data-desc="Embeds cfgfile.Runner; Stop() drains the input, then closes the shared procs once (sync.Once).">
           <rect x="250" y="424" width="420" height="46" rx="8" fill="#10261a" stroke="#3fb95088"/>
           <text x="460" y="452" fill="#7ee787" text-anchor="middle">runnerWithSharedProcessors  (built here)</text>
           </g>
 
           <!-- band 6: runner -->
-          <g class="hot" data-loc="cfgfile.Runner" data-desc="Start()/Stop() the input; spawns its harvesters.">
+          <g class="hot" data-loc="the wrapped concrete runner" data-desc="The wrapper forwards SetStatusReporter and SetOnce through to it.">
           <rect x="300" y="498" width="320" height="42" rx="8" fill="#1c2330" stroke="#2b3340"/>
           <text x="460" y="524" fill="#fff" text-anchor="middle">input Runner.Start()</text>
           </g>
 
           <!-- band 7: harvesters -->
-          <g class="hot" data-loc="filestream/internal/input-logfile/harvester.go:290" data-desc="Each harvester opens its own pipeline client via ConnectWith().">
+          <g class="hot" data-loc="harvester.go:290" data-desc="One client per file; the per-client ConfigEditor runs on each ConnectWith.">
           <rect x="280" y="568" width="360" height="42" rx="8" fill="#1c2330" stroke="#2b3340"/>
           <text x="460" y="594" fill="#fff" text-anchor="middle">harvesters → ConnectWith (per file)</text>
           </g>
@@ -460,7 +460,7 @@
         </div>
       </figure>
 
-      <p class="muted" style="font-size:13px">Hover or tap any box above for its source file and what it drives.</p>
+      <p class="muted" style="font-size:13px">Hover or tap any box for extra detail it doesn't show.</p>
 
       <h4>Why the upstream matters for <em>this</em> PR</h4>
       <p>The reload driver explains three design choices that otherwise look arbitrary in <code class="inline">runner.go</code>:</p>
