@@ -107,7 +107,7 @@
   .swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
   .hot { cursor: help; }
   .hot rect { transition: stroke .12s, stroke-width .12s; }
-  .hot:hover rect { stroke: var(--accent); stroke-width: 2; }
+  .hot:hover rect, .hot.pinned rect { stroke: var(--accent); stroke-width: 2; }
   #svgtip { position: fixed; z-index: 60; max-width: 340px; pointer-events: none; opacity: 0; transition: opacity .1s; background: #0a0d12; border: 1px solid var(--accent); border-radius: 8px; padding: 9px 12px; font-family: var(--mono); font-size: 12px; line-height: 1.5; color: var(--text); box-shadow: 0 8px 24px #000a; }
   #svgtip.show { opacity: 1; }
   #svgtip .tip-loc { color: var(--accent); font-weight: 600; }
@@ -335,7 +335,7 @@
         </div>
       </figure>
 
-      <p class="muted" style="font-size:13px">Hover any box above for its source file and role.</p>
+      <p class="muted" style="font-size:13px">Hover or tap any box above for its source file and role.</p>
     </section>
 
     <!-- ============================ CALL GRAPH ABOVE ============================ -->
@@ -887,10 +887,16 @@ go test -v -race -run <span class="s">'TestShared|TestInputProcessorPathsSetOnce
   }, { rootMargin: '-10% 0px -80% 0px' });
   document.querySelectorAll('section[id]').forEach(function (s) { obs.observe(s); });
 
-  // SVG box hover tooltips (replaces the "where each box lives" table)
+  // SVG box tooltips: hover to preview, click/tap to pin (replaces the "where each box lives" table)
   (function () {
     var tip = document.getElementById('svgtip');
     if (!tip) return;
+    var pinned = null;
+    function fill(g) {
+      var loc = g.getAttribute('data-loc') || '';
+      var desc = g.getAttribute('data-desc') || '';
+      tip.innerHTML = '<span class="tip-loc">' + loc + '</span>' + (desc ? '<br>' + desc : '');
+    }
     function place(e) {
       var x = e.clientX + 14, y = e.clientY + 16;
       var r = tip.getBoundingClientRect();
@@ -899,17 +905,27 @@ go test -v -race -run <span class="s">'TestShared|TestInputProcessorPathsSetOnce
       tip.style.left = x + 'px';
       tip.style.top = y + 'px';
     }
+    function unpin() {
+      if (pinned) { pinned.classList.remove('pinned'); pinned = null; }
+      tip.classList.remove('show');
+    }
     document.querySelectorAll('svg .hot').forEach(function (g) {
       g.addEventListener('mouseenter', function (e) {
-        var loc = g.getAttribute('data-loc') || '';
-        var desc = g.getAttribute('data-desc') || '';
-        tip.innerHTML = '<span class="tip-loc">' + loc + '</span>' + (desc ? '<br>' + desc : '');
-        tip.classList.add('show');
-        place(e);
+        if (pinned) return;                       // a pinned tip wins over hover preview
+        fill(g); tip.classList.add('show'); place(e);
       });
-      g.addEventListener('mousemove', place);
-      g.addEventListener('mouseleave', function () { tip.classList.remove('show'); });
+      g.addEventListener('mousemove', function (e) { if (!pinned) place(e); });
+      g.addEventListener('mouseleave', function () { if (!pinned) tip.classList.remove('show'); });
+      g.addEventListener('click', function (e) {
+        e.stopPropagation();                      // don't let the document handler dismiss it
+        if (pinned === g) { unpin(); return; }    // tap again to dismiss
+        if (pinned) pinned.classList.remove('pinned');
+        pinned = g; g.classList.add('pinned');
+        fill(g); tip.classList.add('show'); place(e);
+      });
     });
+    document.addEventListener('click', function () { if (pinned) unpin(); });
+    window.addEventListener('scroll', function () { if (pinned) unpin(); }, { passive: true });
   })();
 </script>
 </body>
