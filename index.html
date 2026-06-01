@@ -55,15 +55,15 @@
   <div class="wrap">
     <header>
       <span class="eyebrow">orestisfl/beats</span>
-      <h1>Engineering explainers</h1>
-      <p class="sub">Rich, self-contained HTML write-ups of bugs, fixes, and architecture in the Beats codebase — built to be read once and understood fully.</p>
+      <h1>Explainers</h1>
+      <p class="sub">Write-ups documenting my work on the Beats codebase.</p>
     </header>
 
     <div class="grp">Filebeat · processing pipeline</div>
     <div class="grid">
       <a class="card" href="per-input-processors-once/">
         <h2>Build per-input processors once, not per harvester <span class="arrow">&rarr;</span></h2>
-        <p>Why a single <code>add_kubernetes_metadata</code> processor was being rebuilt for every log file (a 13&times; memory blow-up), how Filebeat's runners / config editors / processing pipeline fit together, and exactly how this branch fixes it — with diagrams, the upstream call graph, and annotated code.</p>
+        <p>Why a single <code>add_kubernetes_metadata</code> processor was being rebuilt for every log file (issue #50376), how Filebeat's runners / config editors / processing pipeline fit together, and how this branch fixes it. Includes diagrams, the upstream call graph, and annotated code.</p>
         <div class="tags">
           <span class="tag">component <b>filebeat</b></span>
           <span class="tag">issue <b>#50376</b></span>
