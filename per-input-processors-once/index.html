@@ -105,6 +105,12 @@
   .legend { display: flex; gap: 18px; flex-wrap: wrap; justify-content: center; margin-top: 10px; font-size: 12px; color: var(--muted); }
   .legend span { display: inline-flex; align-items: center; gap: 6px; }
   .swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+  .hot { cursor: help; }
+  .hot rect { transition: stroke .12s, stroke-width .12s; }
+  .hot:hover rect { stroke: var(--accent); stroke-width: 2; }
+  #svgtip { position: fixed; z-index: 60; max-width: 340px; pointer-events: none; opacity: 0; transition: opacity .1s; background: #0a0d12; border: 1px solid var(--accent); border-radius: 8px; padding: 9px 12px; font-family: var(--mono); font-size: 12px; line-height: 1.5; color: var(--text); box-shadow: 0 8px 24px #000a; }
+  #svgtip.show { opacity: 1; }
+  #svgtip .tip-loc { color: var(--accent); font-weight: 600; }
   details { background: var(--bg-soft); border: 1px solid var(--border); border-radius: 8px; padding: 10px 16px; margin: 10px 0; }
   summary { cursor: pointer; color: var(--accent2); font-weight: 600; }
   .kbd { font-family: var(--mono); font-size: 11px; background: var(--bg-soft2); border:1px solid var(--border); border-radius:4px; padding: 1px 6px; }
@@ -247,33 +253,44 @@
           </defs>
 
           <!-- config -->
+          <g class="hot" data-loc="filebeat.yml" data-desc="One - type: filestream block — the input config.">
           <rect x="20" y="20" width="200" height="56" rx="8" fill="#1c2330" stroke="#2b3340"/>
           <text x="120" y="44" fill="#fff" text-anchor="middle">filebeat.yml</text>
           <text x="120" y="62" fill="#93a1b3" text-anchor="middle">- type: filestream</text>
+          </g>
 
           <!-- crawler -->
+          <g class="hot" data-loc="filebeat/beater/crawler.go:138" data-desc="inputsFactory.Create(pipeline, config) per input, then runner.Start().">
           <rect x="20" y="120" width="200" height="64" rx="8" fill="#1c2330" stroke="#2b3340"/>
           <text x="120" y="146" fill="#fff" text-anchor="middle">crawler.startInput()</text>
           <text x="120" y="166" fill="#93a1b3" text-anchor="middle">crawler.go:138</text>
+          </g>
 
           <!-- factory -->
+          <g class="hot" data-loc="filebeat/beater/filebeat.go:408 → filebeat/channel/runner.go" data-desc="Wires RunnerFactoryWithCommonInputSettings as the input loader.">
           <rect x="20" y="232" width="320" height="86" rx="8" fill="#161b22" stroke="#bc8cff66"/>
           <text x="180" y="256" fill="#bc8cff" text-anchor="middle">RunnerFactoryWithCommonInputSettings</text>
           <text x="180" y="276" fill="#93a1b3" text-anchor="middle">filebeat.go:408 → channel/runner.go</text>
           <text x="180" y="298" fill="#d7dee8" text-anchor="middle">wraps the pipeline with a ConfigEditor</text>
+          </g>
 
           <!-- editor -->
+          <g class="hot" data-loc="filebeat/channel/runner.go:242" data-desc="The closure that builds each client's processor list; runs on every ConnectWith.">
           <rect x="20" y="360" width="320" height="86" rx="8" fill="#161b22" stroke="#f0a35e88"/>
           <text x="180" y="384" fill="#f0a35e" text-anchor="middle">ConfigEditor closure</text>
           <text x="180" y="404" fill="#93a1b3" text-anchor="middle">runs on EVERY ConnectWith</text>
           <text x="180" y="426" fill="#d7dee8" text-anchor="middle">injects fields + processors per client</text>
+          </g>
 
           <!-- runner -->
+          <g class="hot" data-loc="cfgfile.Runner (wrapped by runnerWithSharedProcessors)" data-desc="Start()/Stop() a single input.">
           <rect x="380" y="120" width="200" height="64" rx="8" fill="#1c2330" stroke="#2b3340"/>
           <text x="480" y="146" fill="#fff" text-anchor="middle">input Runner</text>
           <text x="480" y="166" fill="#93a1b3" text-anchor="middle">Start() / Stop()</text>
+          </g>
 
           <!-- harvesters -->
+          <g class="hot" data-loc="filestream/internal/input-logfile/harvester.go:290" data-desc="hg.pipeline.ConnectWith(...) — one pipeline client per file.">
           <rect x="640" y="60" width="250" height="46" rx="8" fill="#1c2330" stroke="#2b3340"/>
           <text x="765" y="88" fill="#fff" text-anchor="middle">harvester (file A) → client A</text>
           <rect x="640" y="120" width="250" height="46" rx="8" fill="#1c2330" stroke="#2b3340"/>
@@ -281,12 +298,15 @@
           <rect x="640" y="180" width="250" height="46" rx="8" fill="#1c2330" stroke="#2b3340"/>
           <text x="765" y="208" fill="#fff" text-anchor="middle">harvester (file C) → client C</text>
           <text x="765" y="246" fill="#f85149" text-anchor="middle">… one per file (thousands)</text>
+          </g>
 
           <!-- processing group -->
+          <g class="hot" data-loc="libbeat/publisher/processing/processors.go:36" data-desc="Runs the client's processors and Close()s them when the client closes.">
           <rect x="640" y="360" width="250" height="86" rx="8" fill="#161b22" stroke="#2b3340"/>
           <text x="765" y="386" fill="#fff" text-anchor="middle">per-client processing.group</text>
           <text x="765" y="406" fill="#93a1b3" text-anchor="middle">publisher/processing</text>
           <text x="765" y="428" fill="#d7dee8" text-anchor="middle">runs + closes the client's procs</text>
+          </g>
 
           <!-- arrows -->
           <line x1="120" y1="76" x2="120" y2="118" stroke="#58a6ff" marker-end="url(#arr)"/>
@@ -315,15 +335,7 @@
         </div>
       </figure>
 
-      <h4>Where each box lives in the code</h4>
-      <table>
-        <tr><th>Box</th><th>Location</th><th>Role</th></tr>
-        <tr><td>crawler</td><td class="muted">filebeat/beater/crawler.go:138</td><td><code class="inline">inputsFactory.Create(pipeline, config)</code> per input, then <code class="inline">runner.Start()</code></td></tr>
-        <tr><td>factory wrapper</td><td class="muted">filebeat/beater/filebeat.go:408</td><td>wires <code class="inline">RunnerFactoryWithCommonInputSettings</code> as the input loader</td></tr>
-        <tr><td>config editor</td><td class="muted">filebeat/channel/runner.go:242</td><td>the closure that builds each client's processor list</td></tr>
-        <tr><td>harvester connect</td><td class="muted">filestream/internal/input-logfile/harvester.go:290</td><td><code class="inline">hg.pipeline.ConnectWith(...)</code> — one client per file</td></tr>
-        <tr><td>processing group</td><td class="muted">libbeat/publisher/processing/processors.go:36</td><td>runs the client's processors and <code class="inline">Close()</code>s them when the client closes</td></tr>
-      </table>
+      <p class="muted" style="font-size:13px">Hover any box above for its source file and role.</p>
     </section>
 
     <!-- ============================ CALL GRAPH ABOVE ============================ -->
@@ -844,6 +856,8 @@ go test -v -race -run <span class="s">'TestShared|TestInputProcessorPathsSetOnce
   </main>
 </div>
 
+<div id="svgtip"></div>
+
 <script>
   // tab switching (scoped per group)
   document.querySelectorAll('.tabs').forEach(function (bar) {
@@ -872,6 +886,31 @@ go test -v -race -run <span class="s">'TestShared|TestInputProcessorPathsSetOnce
     });
   }, { rootMargin: '-10% 0px -80% 0px' });
   document.querySelectorAll('section[id]').forEach(function (s) { obs.observe(s); });
+
+  // SVG box hover tooltips (replaces the "where each box lives" table)
+  (function () {
+    var tip = document.getElementById('svgtip');
+    if (!tip) return;
+    function place(e) {
+      var x = e.clientX + 14, y = e.clientY + 16;
+      var r = tip.getBoundingClientRect();
+      if (x + r.width > window.innerWidth - 8) x = e.clientX - r.width - 14;
+      if (y + r.height > window.innerHeight - 8) y = e.clientY - r.height - 16;
+      tip.style.left = x + 'px';
+      tip.style.top = y + 'px';
+    }
+    document.querySelectorAll('svg .hot').forEach(function (g) {
+      g.addEventListener('mouseenter', function (e) {
+        var loc = g.getAttribute('data-loc') || '';
+        var desc = g.getAttribute('data-desc') || '';
+        tip.innerHTML = '<span class="tip-loc">' + loc + '</span>' + (desc ? '<br>' + desc : '');
+        tip.classList.add('show');
+        place(e);
+      });
+      g.addEventListener('mousemove', place);
+      g.addEventListener('mouseleave', function () { tip.classList.remove('show'); });
+    });
+  })();
 </script>
 </body>
 </html>
