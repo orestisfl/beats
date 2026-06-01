@@ -153,6 +153,7 @@
       <h1>Build per-input processors <em>once</em>, not once per harvester</h1>
       <p class="lead muted">A single <code class="inline">add_kubernetes_metadata</code> processor was being rebuilt for <b>every log file</b> Filebeat tailed. With thousands of Kubernetes container logs that meant thousands of Kubernetes API watchers, and ~13× the memory. This page covers the bug, the surrounding pipeline architecture, and how this branch fixes it.</p>
       <div class="pillrow">
+        <span class="pill" id="readtime" hidden></span>
         <span class="pill">issue <b>#50376</b></span>
         <span class="pill">PR <b>#50611</b> (draft)</span>
         <span class="pill">related PR <b>#50713</b> (merged)</span>
@@ -873,6 +874,19 @@ go test -v -race -run <span class="s">'TestShared|TestInputProcessorPathsSetOnce
 <div id="svgtip"></div>
 
 <script>
+  // reading-time estimate: count prose words in <main>, excluding diagrams and code blocks
+  (function () {
+    var pill = document.getElementById('readtime');
+    var main = document.querySelector('main');
+    if (!pill || !main) return;
+    var clone = main.cloneNode(true);
+    clone.querySelectorAll('svg, pre, script, style, #readtime').forEach(function (el) { el.remove(); });
+    var words = ((clone.textContent || '').match(/\S+/g) || []).length;
+    var mins = Math.max(1, Math.round(words / 220)); // ~220 wpm for technical prose
+    pill.textContent = '~' + mins + ' min read';
+    pill.hidden = false;
+  })();
+
   // tab switching (scoped per group)
   document.querySelectorAll('.tabs').forEach(function (bar) {
     var group = bar.getAttribute('data-tabs');
