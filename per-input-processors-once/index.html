@@ -132,17 +132,16 @@
     <a href="#glossary">Glossary</a>
     <div class="grp">The problem</div>
     <a href="#architecture">1 · How it fits together</a>
-    <a href="#callgraph">2 · Above: who drives it</a>
-    <a href="#rootcause">3 · Root cause</a>
+    <a href="#rootcause">2 · Root cause</a>
     <div class="grp">The fix</div>
-    <a href="#approach">4 · This branch's approach</a>
-    <a href="#wrapper">5 · The sharedProcessor wrapper</a>
-    <a href="#lifecycle">6 · Lifecycle &amp; ownership</a>
-    <a href="#subtleties">7 · Three subtleties</a>
+    <a href="#approach">3 · This branch's approach</a>
+    <a href="#wrapper">4 · The sharedProcessor wrapper</a>
+    <a href="#lifecycle">5 · Lifecycle &amp; ownership</a>
+    <a href="#subtleties">6 · Three subtleties</a>
     <div class="grp">Context</div>
-    <a href="#twofixes">8 · Two PRs, two strategies</a>
-    <a href="#tests">9 · Tests</a>
-    <a href="#behavior">10 · Behavioral change</a>
+    <a href="#twofixes">7 · Two PRs, two strategies</a>
+    <a href="#tests">8 · Tests</a>
+    <a href="#behavior">9 · Behavioral change</a>
     <a href="#map">Why each file changes</a>
   </nav>
 
@@ -174,7 +173,7 @@
         </div>
         <div class="card">
           <h4 style="color:var(--warn)">The catch</h4>
-          <p>Sharing means a client must <b>not</b> close or re-initialise a processor that siblings still use. The wrapper hides <code class="inline">Close</code> and <code class="inline">SetPaths</code>; the input does both, once.</p>
+          <p>Sharing means a client must <em>not</em> close or re-initialise a processor that siblings still use. The wrapper hides <code class="inline">Close</code> and <code class="inline">SetPaths</code>; the input does both, once.</p>
         </div>
       </div>
     </section>
@@ -187,32 +186,32 @@
         <tr>
           <td><b>Input</b></td>
           <td>One <code class="inline">- type: filestream</code> block in the config. It can tail many files at once.</td>
-          <td class="muted"><a href="https://github.com/orestisfl/beats/tree/1c56eff0926604d98ec13ad0a22be8bae3f8b901/filebeat/input/filestream" target="_blank" rel="noopener"><code class="inline">filebeat/input/filestream</code></a></td>
+          <td class="muted"><a href="https://github.com/elastic/beats/tree/main/filebeat/input/filestream" target="_blank" rel="noopener"><code class="inline">filebeat/input/filestream</code></a></td>
         </tr>
         <tr>
           <td><b>Harvester</b></td>
           <td>One goroutine reading one file. Each harvester opens its own pipeline client.</td>
-          <td class="muted">filestream <a href="https://github.com/orestisfl/beats/blob/1c56eff0926604d98ec13ad0a22be8bae3f8b901/filebeat/input/filestream/internal/input-logfile/harvester.go#L52" target="_blank" rel="noopener"><code class="inline">harvester.go</code></a></td>
+          <td class="muted">filestream <a href="https://github.com/elastic/beats/blob/main/filebeat/input/filestream/internal/input-logfile/harvester.go#L52" target="_blank" rel="noopener"><code class="inline">harvester.go</code></a></td>
         </tr>
         <tr>
           <td><b>Runner</b></td>
           <td>The object that <code class="inline">Start()</code>s and <code class="inline">Stop()</code>s a single input. The crawler keeps one per input.</td>
-          <td class="muted"><a href="https://github.com/orestisfl/beats/blob/1c56eff0926604d98ec13ad0a22be8bae3f8b901/libbeat/cfgfile/reload.go#L91" target="_blank" rel="noopener"><code class="inline">cfgfile.Runner</code></a> interface</td>
+          <td class="muted"><a href="https://github.com/elastic/beats/blob/main/libbeat/cfgfile/reload.go#L91" target="_blank" rel="noopener"><code class="inline">cfgfile.Runner</code></a> interface</td>
         </tr>
         <tr>
           <td><b>Crawler</b></td>
           <td>Loads the static <code class="inline">filebeat.inputs</code> at startup and creates one <b>Runner</b> per input through the factory, then <code class="inline">Start()</code>s each.</td>
-          <td class="muted"><a href="https://github.com/orestisfl/beats/blob/1c56eff0926604d98ec13ad0a22be8bae3f8b901/filebeat/beater/crawler.go#L34" target="_blank" rel="noopener"><code class="inline">filebeat/beater/crawler.go</code></a></td>
+          <td class="muted"><a href="https://github.com/elastic/beats/blob/main/filebeat/beater/crawler.go#L34" target="_blank" rel="noopener"><code class="inline">filebeat/beater/crawler.go</code></a></td>
         </tr>
         <tr>
           <td><b>Config editor</b></td>
           <td>A function <code class="inline">func(ClientConfig) (ClientConfig, error)</code> that runs <b>every time a client connects</b> and injects the input's fields, tags and <em>processors</em> into that client. This is the hot path in the bug.</td>
-          <td class="muted"><a href="https://github.com/orestisfl/beats/blob/1c56eff0926604d98ec13ad0a22be8bae3f8b901/libbeat/publisher/pipetool/pipetool.go#L36" target="_blank" rel="noopener"><code class="inline">pipetool.ConfigEditor</code></a></td>
+          <td class="muted"><a href="https://github.com/elastic/beats/blob/main/libbeat/publisher/pipetool/pipetool.go#L36" target="_blank" rel="noopener"><code class="inline">pipetool.ConfigEditor</code></a></td>
         </tr>
         <tr>
           <td><b>Processor</b></td>
           <td>An event transformer (<code class="inline">add_kubernetes_metadata</code>, <code class="inline">add_fields</code>, <code class="inline">drop_event</code>…). Some are <em>stateful</em>.</td>
-          <td class="muted"><a href="https://github.com/orestisfl/beats/tree/1c56eff0926604d98ec13ad0a22be8bae3f8b901/libbeat/processors" target="_blank" rel="noopener"><code class="inline">libbeat/processors</code></a></td>
+          <td class="muted"><a href="https://github.com/elastic/beats/tree/main/libbeat/processors" target="_blank" rel="noopener"><code class="inline">libbeat/processors</code></a></td>
         </tr>
       </table>
     </section>
@@ -232,7 +231,7 @@
           </defs>
 
           <!-- config -->
-          <g class="hot" data-loc="config.Inputs / filebeat.config.inputs" data-desc="Each block becomes one input ⇒ one Runner; parsers, take_over, and processors live here.">
+          <g class="hot" data-loc="config.Inputs / filebeat.config.inputs" data-desc="Each block becomes one input.">
           <rect x="20" y="20" width="200" height="56" rx="8" fill="#1c2330" stroke="#2b3340"/>
           <text x="120" y="44" fill="#fff" text-anchor="middle">filebeat.yml</text>
           <text x="120" y="62" fill="#93a1b3" text-anchor="middle">- type: filestream</text>
@@ -246,7 +245,7 @@
           </g>
 
           <!-- factory -->
-          <g class="hot" data-loc="commonSettingsFactory.Create" data-desc="Wraps the runner as runnerWithSharedProcessors only when the input has shared processors; bare runner otherwise.">
+          <g class="hot" data-loc="commonSettingsFactory.Create" data-desc="Wraps the runner as runnerWithSharedProcessors.">
           <rect x="20" y="232" width="320" height="86" rx="8" fill="#161b22" stroke="#bc8cff66"/>
           <text x="180" y="256" fill="#bc8cff" text-anchor="middle">RunnerFactoryWithCommonInputSettings</text>
           <text x="180" y="276" fill="#93a1b3" text-anchor="middle">filebeat.go:408 → channel/runner.go</text>
@@ -257,7 +256,7 @@
           <g class="hot" data-loc="runner.go:242 — the closure" data-desc="Attaches sharedProcessor{} views of the once-built processors; the same instances for every client.">
           <rect x="20" y="360" width="320" height="86" rx="8" fill="#161b22" stroke="#f0a35e88"/>
           <text x="180" y="384" fill="#f0a35e" text-anchor="middle">ConfigEditor closure</text>
-          <text x="180" y="404" fill="#93a1b3" text-anchor="middle">runs on EVERY ConnectWith</text>
+          <text x="180" y="404" fill="#93a1b3" text-anchor="middle">runs on <tspan font-style="italic">every</tspan> ConnectWith</text>
           <text x="180" y="426" fill="#d7dee8" text-anchor="middle">injects fields + processors per client</text>
           </g>
 
@@ -276,7 +275,7 @@
           <text x="765" y="148" fill="#fff" text-anchor="middle">harvester (file B) → client B</text>
           <rect x="640" y="180" width="250" height="46" rx="8" fill="#1c2330" stroke="#2b3340"/>
           <text x="765" y="208" fill="#fff" text-anchor="middle">harvester (file C) → client C</text>
-          <text x="765" y="246" fill="#f85149" text-anchor="middle">… one per file (thousands)</text>
+          <text x="765" y="246" fill="#f85149" text-anchor="middle">… one per file</text>
           </g>
 
           <!-- processing group -->
@@ -295,8 +294,8 @@
           <text x="300" y="142" fill="#93a1b3">Create()</text>
           <!-- harvesters connect -> editor -->
           <line x1="640" y1="83" x2="345" y2="392" stroke="#f0a35e" stroke-dasharray="4 3" marker-end="url(#arr)"/>
-          <line x1="640" y1="143" x2="345" y2="398" stroke="#f0a35e" stroke-dasharray="4 3"/>
-          <line x1="640" y1="203" x2="345" y2="404" stroke="#f0a35e" stroke-dasharray="4 3"/>
+          <line x1="640" y1="143" x2="345" y2="398" stroke="#f0a35e" stroke-dasharray="4 3" marker-end="url(#arr)"/>
+          <line x1="640" y1="203" x2="345" y2="404" stroke="#f0a35e" stroke-dasharray="4 3" marker-end="url(#arr)"/>
           <text x="430" y="330" fill="#f0a35e">ConnectWith() ⇒ editor runs</text>
           <!-- runner spawns harvesters -->
           <line x1="580" y1="140" x2="638" y2="100" stroke="#58a6ff" marker-end="url(#arr)"/>
@@ -314,156 +313,15 @@
         </div>
       </figure>
 
-      <p class="muted" style="font-size:13px">Hover or tap any box for extra detail it doesn't show.</p>
-    </section>
+      <p>This same factory feeds both standalone and Elastic-Agent-managed Filebeat. Two drivers create and stop the runners — the crawler for static <code class="inline">filebeat.inputs</code>, and <code class="inline">cfgfile.RunnerList</code> on each config reload. Because a reload can call <code class="inline">Stop()</code> on a runner more than once, this branch's wrapper makes <code class="inline">Stop()</code> idempotent.</p>
 
-    <!-- ============================ CALL GRAPH ABOVE ============================ -->
-    <section id="callgraph">
-      <h2>2 · Above this code — who creates and drives the runner</h2>
-      <p>Section 2 looked <em>down</em> from the factory toward harvesters. This looks <em>up</em>: nobody calls <code class="inline">RunnerFactoryWithCommonInputSettings</code> directly in a loop — instead two drivers call <code class="inline">factory.Create()</code> and the runner's <code class="inline">Start()</code>/<code class="inline">Stop()</code>, fed by three config sources. The same factory serves <b>both</b> standalone and Elastic-Agent-managed Filebeat.</p>
-
-      <figure>
-        <svg viewBox="0 0 920 660" font-size="12" font-family="var(--mono)">
-          <defs>
-            <marker id="ca" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#58a6ff"/></marker>
-            <marker id="cp" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#bc8cff"/></marker>
-          </defs>
-
-          <!-- band 1: config sources -->
-          <text x="10" y="16" fill="#5b6675">config sources</text>
-          <g class="hot" data-loc="CheckinExpected → units" data-desc="Unit configs carry InputUnitID; Create/Stop errors are reported back to Fleet per unit.">
-          <rect x="20" y="24" width="270" height="48" rx="8" fill="#1c2330" stroke="#bc8cff66"/>
-          <text x="155" y="44" fill="#bc8cff" text-anchor="middle">Elastic Agent / Fleet</text>
-          <text x="155" y="62" fill="#93a1b3" text-anchor="middle">pushes input units</text>
-          </g>
-
-          <g class="hot" data-loc="standalone dynamic inputs" data-desc="Diff-applied through RunnerList on each file change — the reloadable path, not the static one.">
-          <rect x="325" y="24" width="270" height="48" rx="8" fill="#1c2330" stroke="#2b3340"/>
-          <text x="460" y="44" fill="#fff" text-anchor="middle">filebeat.config.inputs</text>
-          <text x="460" y="62" fill="#93a1b3" text-anchor="middle">external file, hot-reloaded</text>
-          </g>
-
-          <g class="hot" data-loc="config.Inputs (startup)" data-desc="Loaded once by the crawler; never goes through RunnerList.">
-          <rect x="630" y="24" width="270" height="48" rx="8" fill="#1c2330" stroke="#2b3340"/>
-          <text x="765" y="44" fill="#fff" text-anchor="middle">filebeat.inputs (static)</text>
-          <text x="765" y="62" fill="#93a1b3" text-anchor="middle">inline in filebeat.yml</text>
-          </g>
-
-          <!-- band 2: adapters -->
-          <text x="10" y="104" fill="#5b6675">adapters</text>
-          <g class="hot" data-loc="registers RunnerList as reload.Reloadable" data-desc="Calls obj.Reload(inputBeatCfgs); an input error sets forceReload to retry the apply.">
-          <rect x="20" y="112" width="270" height="52" rx="8" fill="#161b22" stroke="#2b3340"/>
-          <text x="155" y="134" fill="#fff" text-anchor="middle">management.managerV2</text>
-          <text x="155" y="152" fill="#93a1b3" text-anchor="middle">reloadInputs() · managerV2.go:926</text>
-          </g>
-
-          <g class="hot" data-loc="Reloader.Run → list.Reload" data-desc="Polls the configured glob and diff-applies changes via the RunnerList.">
-          <rect x="325" y="112" width="270" height="52" rx="8" fill="#161b22" stroke="#2b3340"/>
-          <text x="460" y="134" fill="#fff" text-anchor="middle">cfgfile.Reloader.Run()</text>
-          <text x="460" y="152" fill="#93a1b3" text-anchor="middle">reload.go · watches the file</text>
-          </g>
-
-          <g class="hot" data-loc="bypasses RunnerList" data-desc="One Create()+Start() per static input, directly — no hash-diff engine.">
-          <rect x="630" y="112" width="270" height="52" rx="8" fill="#161b22" stroke="#2b3340"/>
-          <text x="765" y="134" fill="#fff" text-anchor="middle">crawler.startInput()</text>
-          <text x="765" y="152" fill="#93a1b3" text-anchor="middle">crawler.go:138 · one-shot</text>
-          </g>
-
-          <!-- band 3: driver -->
-          <text x="10" y="200" fill="#5b6675">drivers (call Create / Start / Stop)</text>
-          <g class="hot" data-loc="stops removed concurrently, then starts" data-desc="Waits for all removed runners to Stop before starting new ones; wires SetStatusReporter (154) and per-unit Create errors (141).">
-          <rect x="120" y="208" width="470" height="74" rx="8" fill="#161b22" stroke="#f0a35e88"/>
-          <text x="355" y="232" fill="#f0a35e" text-anchor="middle">cfgfile.RunnerList.Reload()  ·  list.go:82</text>
-          <text x="355" y="252" fill="#d7dee8" text-anchor="middle">diff desired vs running configs by hash</text>
-          <text x="355" y="270" fill="#93a1b3" text-anchor="middle">removed ⇒ runner.Stop()   ·   new ⇒ Create()+Start()</text>
-          </g>
-
-          <!-- crawler also a direct driver, reuse C2 box pointing straight down -->
-
-          <!-- band 4: factory (this area) -->
-          <text x="10" y="318" fill="#5b6675">the factory (this PR)</text>
-          <g class="hot" data-loc="also feeds fileset.NewFactory" data-desc="Modules reuse the same factory; an OTel status wrapper may wrap it again.">
-          <rect x="120" y="326" width="680" height="70" rx="8" fill="#161b22" stroke="#bc8cff"/>
-          <text x="460" y="350" fill="#bc8cff" text-anchor="middle">RunnerFactoryWithCommonInputSettings  ·  filebeat.go:408</text>
-          <text x="460" y="370" fill="#d7dee8" text-anchor="middle">wraps compat.Combine( v2 loader , legacy input factory )</text>
-          <text x="460" y="388" fill="#93a1b3" text-anchor="middle">v2: filestream, aws-s3, cel, …   ·   legacy: log, tcp, udp, …</text>
-          </g>
-
-          <!-- band 5: wrapper -->
-          <g class="hot" data-loc="runner.go:119" data-desc="Embeds cfgfile.Runner; Stop() drains the input, then closes the shared procs once (sync.Once).">
-          <rect x="250" y="424" width="420" height="46" rx="8" fill="#10261a" stroke="#3fb95088"/>
-          <text x="460" y="452" fill="#7ee787" text-anchor="middle">runnerWithSharedProcessors  (built here)</text>
-          </g>
-
-          <!-- band 6: runner -->
-          <g class="hot" data-loc="the wrapped concrete runner" data-desc="The wrapper forwards SetStatusReporter and SetOnce through to it.">
-          <rect x="300" y="498" width="320" height="42" rx="8" fill="#1c2330" stroke="#2b3340"/>
-          <text x="460" y="524" fill="#fff" text-anchor="middle">input Runner.Start()</text>
-          </g>
-
-          <!-- band 7: harvesters -->
-          <g class="hot" data-loc="harvester.go:290" data-desc="One client per file; the per-client ConfigEditor runs on each ConnectWith.">
-          <rect x="280" y="568" width="360" height="42" rx="8" fill="#1c2330" stroke="#2b3340"/>
-          <text x="460" y="594" fill="#fff" text-anchor="middle">harvesters → ConnectWith (per file)</text>
-          </g>
-
-          <!-- arrows band1->band2 -->
-          <line x1="155" y1="72" x2="155" y2="110" stroke="#58a6ff" marker-end="url(#ca)"/>
-          <line x1="460" y1="72" x2="460" y2="110" stroke="#58a6ff" marker-end="url(#ca)"/>
-          <line x1="765" y1="72" x2="765" y2="110" stroke="#58a6ff" marker-end="url(#ca)"/>
-
-          <!-- adapters -> RunnerList (A2, B2) -->
-          <line x1="160" y1="164" x2="280" y2="206" stroke="#58a6ff" marker-end="url(#ca)"/>
-          <line x1="455" y1="164" x2="400" y2="206" stroke="#58a6ff" marker-end="url(#ca)"/>
-
-          <!-- RunnerList -> factory -->
-          <line x1="355" y1="282" x2="400" y2="324" stroke="#58a6ff" marker-end="url(#ca)"/>
-          <text x="300" y="312" fill="#93a1b3">createRunner→Create() list.go:244</text>
-
-          <!-- crawler (C2) -> factory direct (down the right side) -->
-          <path d="M765,164 L765,305 L620,305 L560,326" fill="none" stroke="#58a6ff" marker-end="url(#ca)"/>
-          <text x="690" y="300" fill="#93a1b3">Create() direct</text>
-
-          <!-- factory -> wrapper -> runner -> harvesters -->
-          <line x1="460" y1="396" x2="460" y2="422" stroke="#bc8cff" marker-end="url(#cp)"/>
-          <text x="500" y="414" fill="#bc8cff">Create() returns</text>
-          <line x1="460" y1="470" x2="460" y2="496" stroke="#3fb950" marker-end="url(#ca)"/>
-          <line x1="460" y1="540" x2="460" y2="566" stroke="#58a6ff" marker-end="url(#ca)"/>
-        </svg>
-        <figcaption>Three config sources → two drivers → one factory. Filestream is a <b>v2 input</b>, so it reaches this factory through <code>compat.Combine</code> just like every other input type.</figcaption>
-        <div class="legend">
-          <span><span class="swatch" style="background:#bc8cff"></span> managed / Elastic Agent</span>
-          <span><span class="swatch" style="background:#58a6ff"></span> control flow</span>
-          <span><span class="swatch" style="background:#f0a35e"></span> reload driver</span>
-          <span><span class="swatch" style="background:#3fb950"></span> this PR's wrapper</span>
-        </div>
-      </figure>
-
-      <p class="muted" style="font-size:13px">Hover or tap any box for extra detail it doesn't show.</p>
-
-      <h4>Why the upstream matters for <em>this</em> PR</h4>
-      <p>The reload driver explains three design choices that otherwise look arbitrary in <code class="inline">runner.go</code>:</p>
-      <div class="grid3">
-        <div class="card">
-          <h4 style="margin-top:0">Idempotent <code class="inline">Stop</code></h4>
-          <p><code class="inline">RunnerList.Reload</code> calls <code class="inline">runner.Stop()</code> on <b>every</b> config change for every removed runner (<code class="inline">list.go:119</code>). Stop can therefore arrive more than once → the wrapper guards it with <code class="inline">sync.Once</code>.</p>
-        </div>
-        <div class="card">
-          <h4 style="margin-top:0">Forwarding <code class="inline">SetStatusReporter</code></h4>
-          <p>Under Agent, the driver wires per-unit status: <code class="inline">runner.(status.WithStatusReporter).SetStatusReporter(...)</code> (<code class="inline">list.go:154</code>). The embedded interface hides it, so the wrapper re-exposes it (§7③).</p>
-        </div>
-        <div class="card">
-          <h4 style="margin-top:0">Fail-fast at <code class="inline">Create</code></h4>
-          <p>A failed <code class="inline">Create</code> is reported per unit when <code class="inline">InputUnitID != ""</code> (<code class="inline">list.go:141</code>). Building processors eagerly (§4) turns a bad processor config into a clean FAILED unit (§10).</p>
-        </div>
-      </div>
-
+      <p class="muted" style="font-size:13px">Hover or tap any box for extra detail.</p>
     </section>
 
     <!-- ============================ ROOT CAUSE ============================ -->
     <section id="rootcause">
-      <h2>3 · Root cause — construction in the per-client closure</h2>
-      <p>On <code class="inline">main</code>, <code class="inline">newCommonConfigEditor</code> returned a closure, and the processor construction lived <b>inside</b> that closure. The closure is the editor — it runs on every <code class="inline">ConnectWith</code>, i.e. once per harvester.</p>
+      <h2>2 · Root cause — construction in the per-client closure</h2>
+      <p>On <code class="inline">main</code>, <code class="inline">newCommonConfigEditor</code> returned a closure, and the processor construction lived <em>inside</em> that closure. The closure is the editor — it runs on every <code class="inline">ConnectWith</code>, i.e. once per harvester.</p>
 
       <p class="fileref">filebeat/channel/runner.go — BEFORE (origin/main)</p>
       <pre><span class="k">func</span> <span class="f">newCommonConfigEditor</span>(beatInfo beat.Info, cfg *conf.C) (pipetool.ConfigEditor, <span class="k">error</span>) {
@@ -522,8 +380,8 @@
 
     <!-- ============================ APPROACH ============================ -->
     <section id="approach">
-      <h2>4 · This branch's approach — hoist construction out of the closure</h2>
-      <p>The fix: build the processors <b>once</b>, before the editor closure, so every client references the same instances. The closure now only <em>wraps and attaches</em> them.</p>
+      <h2>3 · This branch's approach — hoist construction out of the closure</h2>
+      <p>The fix: build the processors <em>once</em>, before the editor closure, so every client references the same instances. The closure now only <b>wraps and attaches</b> them.</p>
 
       <div class="tabs" data-tabs="ce">
         <button class="active" data-tab="ce1">newCommonConfigEditor</button>
@@ -621,7 +479,7 @@
 
     <!-- ============================ WRAPPER ============================ -->
     <section id="wrapper">
-      <h2>5 · The <code style="font-size:.8em">sharedProcessor</code> wrapper — a run-only view</h2>
+      <h2>4 · The <code style="font-size:.8em">sharedProcessor</code> wrapper — a run-only view</h2>
       <p>The <b>per-client processing group</b> owns its members' lifecycle: when a harvester's client closes, the group calls <code class="inline">Close()</code> on each processor, and at build time it calls <code class="inline">SetPaths()</code>. Both are wrong for a <em>shared</em> instance — the first harvester to stop would tear down state the others still need.</p>
 
       <p class="fileref">filebeat/channel/runner.go:170</p>
@@ -638,7 +496,7 @@
 
       <div class="callout good">
         <span class="lbl">How it works: interface embedding</span>
-        By embedding the narrow <code class="inline">beat.Processor</code> interface (not the concrete type), the wrapper <b>only</b> satisfies <code class="inline">Run</code> and <code class="inline">String</code>. A type-assertion like <code class="inline">p.(processors.Closer)</code> or <code class="inline">p.(processors.PathSetter)</code> <b>fails</b>, so the group's close/setpaths loops simply skip it. Closing becomes a safe no-op.
+        By embedding the narrow <code class="inline">beat.Processor</code> interface (not the concrete type), the wrapper <em>only</em> satisfies <code class="inline">Run</code> and <code class="inline">String</code>. A type-assertion like <code class="inline">p.(processors.Closer)</code> or <code class="inline">p.(processors.PathSetter)</code> <em>fails</em>, so the group's close/setpaths loops simply skip it. Closing becomes a safe no-op.
       </div>
 
       <p>It mirrors how <b>pipeline-global</b> processors are already protected from client close, by wrapping them as a function processor:</p>
@@ -654,7 +512,7 @@
 
     <!-- ============================ LIFECYCLE ============================ -->
     <section id="lifecycle">
-      <h2>6 · Lifecycle &amp; ownership — who builds, who closes</h2>
+      <h2>5 · Lifecycle &amp; ownership — who builds, who closes</h2>
       <p>Ownership moves from "each client" to "the input's runner." The runner is wrapped so its <code class="inline">Stop()</code> releases the shared processors, in the right order, exactly once.</p>
 
       <p class="fileref">filebeat/channel/runner.go:91 — Create wraps the runner only when there is something to release</p>
@@ -719,7 +577,7 @@
 
     <!-- ============================ SUBTLETIES ============================ -->
     <section id="subtleties">
-      <h2>7 · Three subtleties</h2>
+      <h2>6 · Three subtleties</h2>
 
       <div class="card">
         <h4>① Hiding <code class="inline">Close</code> would silently break path-aware processors — so paths move too</h4>
@@ -764,8 +622,8 @@
 
     <!-- ============================ TWO FIXES ============================ -->
     <section id="twofixes">
-      <h2>8 · Two PRs, two strategies for the same root cause</h2>
-      <p>There are <b>two</b> independent fixes for issue #50376, and both are in the tree.</p>
+      <h2>7 · Two PRs, two strategies for the same root cause</h2>
+      <p>There are <em>two</em> independent fixes for issue #50376, and both are in the tree.</p>
       <div class="grid2">
         <div class="card">
           <h4 style="color:var(--purple)">PR #50713 — opt-in, per processor <span class="muted">(merged)</span></h4>
@@ -773,11 +631,11 @@
           <pre style="font-size:12px"><span class="c">// add_kubernetes_metadata/kubernetes.go:63</span>
 processors.<span class="f">RegisterPlugin</span>(<span class="s">"add_kubernetes_metadata"</span>,
     shared.<span class="f">New</span>(New))   <span class="c">// same cfg ⇒ same instance</span></pre>
-          <p class="muted">Pros: fixes the immediate OOM everywhere the processor is used (filestream, autodiscover, modules). Cons: each stateful processor must <b>remember</b> to opt in; the underlying "build per client" waste remains for everything else.</p>
+          <p class="muted">Pros: fixes the immediate OOM everywhere the processor is used (filestream, autodiscover, modules). Cons: each stateful processor must <em>remember</em> to opt in; the underlying "build per client" waste remains for everything else.</p>
         </div>
         <div class="card">
           <h4 style="color:var(--accent2)">PR #50611 — structural, this branch <span class="muted">(draft)</span></h4>
-          <p>Fixes the <b>frequency</b> itself: input-level processors are built once per input in <code class="inline">filebeat/channel/runner.go</code> and shared via <code class="inline">sharedProcessor</code>, regardless of which processor it is.</p>
+          <p>Fixes the <em>frequency</em> itself: input-level processors are built once per input in <code class="inline">filebeat/channel/runner.go</code> and shared via <code class="inline">sharedProcessor</code>, regardless of which processor it is.</p>
           <pre style="font-size:12px"><span class="c">// build once, share read-only view</span>
 userProcs, _ := processors.<span class="f">New</span>(cfg, log)
 <span class="k">for</span> _, p := <span class="k">range</span> userProcs.List {
@@ -788,20 +646,20 @@ userProcs, _ := processors.<span class="f">New</span>(cfg, log)
       </div>
       <div class="callout">
         <span class="lbl">How to think about them</span>
-        #50713 is a targeted <b>de-duplication</b> at the constructor; #50611 is the <b>structural</b> "don't construct per client in the first place." They are complementary: #50713 shipped first as a targeted fix; #50611 removes the root cause so future stateful processors are safe without opting in.
+        #50713 is a targeted <em>de-duplication</em> at the constructor; #50611 is the <em>structural</em> "don't construct per client in the first place." They are complementary: #50713 shipped first as a targeted fix; #50611 removes the root cause so future stateful processors are safe without opting in.
       </div>
     </section>
 
     <!-- ============================ TESTS ============================ -->
     <section id="tests">
-      <h2>9 · Tests covering the change</h2>
+      <h2>8 · Tests covering the change</h2>
       <p class="fileref">filebeat/channel/runner_test.go</p>
       <table>
         <tr><th>Test</th><th>What it verifies</th></tr>
-        <tr><td><code class="inline">TestSharedProcessorsAcrossClients</code></td><td>Two clients of the same input receive the <b>same</b> underlying processor instances — the core "build once" promise.</td></tr>
-        <tr><td><code class="inline">TestSharedProcessorHidesLifecycleMethods</code></td><td><code class="inline">sharedProcessor</code> does <b>not</b> implement <code class="inline">Closer</code> or <code class="inline">PathSetter</code>; <code class="inline">Close</code> is a no-op on the inner; <code class="inline">Run/String</code> still forward.</td></tr>
+        <tr><td><code class="inline">TestSharedProcessorsAcrossClients</code></td><td>Two clients of the same input receive the <em>same</em> underlying processor instances — the core "build once" promise.</td></tr>
+        <tr><td><code class="inline">TestSharedProcessorHidesLifecycleMethods</code></td><td><code class="inline">sharedProcessor</code> does <em>not</em> implement <code class="inline">Closer</code> or <code class="inline">PathSetter</code>; <code class="inline">Close</code> is a no-op on the inner; <code class="inline">Run/String</code> still forward.</td></tr>
         <tr><td><code class="inline">TestInputProcessorPathsSetOnce</code></td><td><code class="inline">SetPaths</code> is called exactly once at build time; a per-client close neither closes nor re-paths the shared instance; the input close closes it once.</td></tr>
-        <tr><td><code class="inline">TestRunnerWithSharedProcessorsClosesProcessorsAtStop</code></td><td>Order: inner <code class="inline">Runner.Stop()</code> returns (clients drained) <b>before</b> shared procs close; <code class="inline">Stop</code> is idempotent.</td></tr>
+        <tr><td><code class="inline">TestRunnerWithSharedProcessorsClosesProcessorsAtStop</code></td><td>Order: inner <code class="inline">Runner.Stop()</code> returns (clients drained) <em>before</em> shared procs close; <code class="inline">Stop</code> is idempotent.</td></tr>
         <tr><td><code class="inline">TestProcessorsForConfigIsFlat</code></td><td>Shared processors are flat siblings (continue-on-error semantics preserved).</td></tr>
         <tr><td><code class="inline">…ForwardsStatusReporter</code> / <code class="inline">…ForwardsSetOnce</code></td><td>Optional methods survive the wrapper.</td></tr>
       </table>
@@ -814,7 +672,7 @@ go test -v -race -run <span class="s">'TestShared|TestInputProcessorPathsSetOnce
 
     <!-- ============================ BEHAVIOR ============================ -->
     <section id="behavior">
-      <h2>10 · One user-visible behavioral change</h2>
+      <h2>9 · One user-visible behavioral change</h2>
       <p>Because processors are now built <b>eagerly at input creation</b> (not lazily on first client connect), a broken processor config now <b>fails the input at startup</b> instead of degrading it after it has started. This aligns filestream &amp; aws-s3 with every other input type.</p>
       <p class="fileref">x-pack/filebeat/tests/integration/managerV2_test.go:1354 — expectations updated</p>
       <pre><span class="c">// filestream and aws-s3 now build their input-level processors eagerly at</span>
