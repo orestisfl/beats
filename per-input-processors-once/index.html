@@ -128,12 +128,11 @@
     <h1>Per-input processors, once</h1>
     <div class="sub">filebeat · PR #50611 · issue #50376</div>
     <div class="grp">Orientation</div>
-    <a href="#tldr">TL;DR</a>
-    <a href="#glossary">Glossary (start here)</a>
+    <a href="#intro">Intro</a>
+    <a href="#glossary">Glossary</a>
     <div class="grp">The problem</div>
-    <a href="#symptom">1 · The symptom</a>
-    <a href="#architecture">2 · How it fits together</a>
-    <a href="#callgraph">↑ Above: who drives it</a>
+    <a href="#architecture">1 · How it fits together</a>
+    <a href="#callgraph">2 · Above: who drives it</a>
     <a href="#rootcause">3 · Root cause</a>
     <div class="grp">The fix</div>
     <a href="#approach">4 · This branch's approach</a>
@@ -161,13 +160,13 @@
       </div>
     </div>
 
-    <!-- ============================ TLDR ============================ -->
-    <section id="tldr">
-      <h2>TL;DR</h2>
+    <!-- ============================ intro ============================ -->
+    <section id="intro">
+      <h2>Intro</h2>
       <div class="grid3">
         <div class="card">
           <h4 style="color:var(--bad)">The bug</h4>
-          <p>Each filestream <b>harvester</b> (one per file) opens its own pipeline client. The code that builds an input's processors ran <b>inside the per-client path</b>, so every harvester constructed a fresh copy of every processor — including stateful ones that start goroutines, caches and Kubernetes watchers.</p>
+          <p>Each filestream <b>harvester</b> (one per file) opens its own pipeline client. The code that builds an input's processors ran <b>inside the per-client path</b>, so every harvester constructed a fresh copy of every processor.</p>
         </div>
         <div class="card">
           <h4 style="color:var(--accent2)">The fix</h4>
@@ -183,7 +182,6 @@
     <!-- ============================ GLOSSARY ============================ -->
     <section id="glossary">
       <h2>Glossary — concepts used below</h2>
-      <p class="muted">The pipeline, runners, and config editors can be unfamiliar at first; here are the five concepts the rest of the page uses.</p>
       <table>
         <tr><th style="width:170px">Term</th><th>What it is</th><th style="width:240px">Where it lives</th></tr>
         <tr>
@@ -193,7 +191,7 @@
         </tr>
         <tr>
           <td><b>Harvester</b></td>
-          <td>One goroutine reading <b>one file</b>. A filestream input with 4 000 files spins up ~4 000 harvesters. <b>Each harvester opens its own pipeline client.</b></td>
+          <td>One goroutine reading one file. Each harvester opens its own pipeline client.</td>
           <td class="muted">filestream <code class="inline">harvester.go</code></td>
         </tr>
         <tr>
@@ -208,38 +206,15 @@
         </tr>
         <tr>
           <td><b>Processor</b></td>
-          <td>An event transformer (<code class="inline">add_kubernetes_metadata</code>, <code class="inline">add_fields</code>, <code class="inline">drop_event</code>…). Some are <b>stateful</b>: they hold caches, timers, or live API watchers, started at construction.</td>
+          <td>An event transformer (<code class="inline">add_kubernetes_metadata</code>, <code class="inline">add_fields</code>, <code class="inline">drop_event</code>…). Some are stateful.</td>
           <td class="muted"><code class="inline">libbeat/processors</code></td>
         </tr>
       </table>
-      <div class="callout">
-        <span class="lbl">In one line</span>
-        The bug: a processor is built <b>per file</b> when it should be built <b>per input</b>. The rest is making that change safe.
-      </div>
-    </section>
-
-    <!-- ============================ SYMPTOM ============================ -->
-    <section id="symptom">
-      <h2>1 · The symptom (issue #50376)</h2>
-      <p>A user moved Kubernetes log collection from the deprecated <code class="inline">container</code> input to <code class="inline">filestream</code> with a near-identical <code class="inline">add_kubernetes_metadata</code> config; on the same host (~41 files), resource use differed sharply:</p>
-      <table>
-        <tr><th>Metric</th><th class="num">container input</th><th class="num">filestream input</th><th class="num">Δ</th></tr>
-        <tr><td>RSS memory</td><td class="num">170 MB</td><td class="num">1 154 MB</td><td class="num delta-bad">6.8×</td></tr>
-        <tr><td>Container mem (docker stats)</td><td class="num">77 MB</td><td class="num">1 013 MB</td><td class="num delta-bad">13×</td></tr>
-        <tr><td>Goroutines</td><td class="num">351</td><td class="num">4 269</td><td class="num delta-bad">12×</td></tr>
-        <tr><td>Running harvesters</td><td class="num">48</td><td class="num">119</td><td class="num delta-bad">2.5×</td></tr>
-        <tr><td>Heap alloc</td><td class="num">38 MB</td><td class="num">670 MB</td><td class="num delta-bad">17×</td></tr>
-      </table>
-      <div class="callout bad">
-        <span class="lbl">Diagnosis</span>
-        Goroutines and memory scale with the <b>number of files</b>, not log volume — the mark of per-file work that should be per-input. The culprit is <code class="inline">add_kubernetes_metadata</code>, which starts a Kubernetes watcher (informers, caches, goroutines) on construction.
-      </div>
-      <p class="muted">Why didn't <code class="inline">container</code> show it? It is implemented on the older log-input model with a different connection pattern, so the per-client construction cost was not multiplied the same way. Filestream's clean "one client per harvester" model is what exposed the latent cost.</p>
     </section>
 
     <!-- ============================ ARCHITECTURE ============================ -->
     <section id="architecture">
-      <h2>2 · How the pieces fit together</h2>
+      <h2>1 · How the pieces fit together</h2>
       <p>Follow one input config from the YAML file down to the events leaving a harvester. The processors are attached at the <b>config-editor</b> step, and that step runs once per <b>ConnectWith</b>.</p>
 
       <figure>
@@ -341,7 +316,7 @@
 
     <!-- ============================ CALL GRAPH ABOVE ============================ -->
     <section id="callgraph">
-      <h2>↑ Above this code — who creates and drives the runner</h2>
+      <h2>2 · Above this code — who creates and drives the runner</h2>
       <p>Section 2 looked <em>down</em> from the factory toward harvesters. This looks <em>up</em>: nobody calls <code class="inline">RunnerFactoryWithCommonInputSettings</code> directly in a loop — instead two drivers call <code class="inline">factory.Create()</code> and the runner's <code class="inline">Start()</code>/<code class="inline">Stop()</code>, fed by three config sources. The same factory serves <b>both</b> standalone and Elastic-Agent-managed Filebeat.</p>
 
       <figure>
