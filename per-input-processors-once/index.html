@@ -187,27 +187,27 @@
         <tr>
           <td><b>Input</b></td>
           <td>One <code class="inline">- type: filestream</code> block in the config. It can tail many files at once.</td>
-          <td class="muted"><code class="inline">filebeat.yml</code></td>
+          <td class="muted"><a href="https://github.com/orestisfl/beats/tree/1c56eff0926604d98ec13ad0a22be8bae3f8b901/filebeat/input/filestream" target="_blank" rel="noopener"><code class="inline">filebeat/input/filestream</code></a></td>
         </tr>
         <tr>
           <td><b>Harvester</b></td>
           <td>One goroutine reading one file. Each harvester opens its own pipeline client.</td>
-          <td class="muted">filestream <code class="inline">harvester.go</code></td>
+          <td class="muted">filestream <a href="https://github.com/orestisfl/beats/blob/1c56eff0926604d98ec13ad0a22be8bae3f8b901/filebeat/input/filestream/internal/input-logfile/harvester.go#L52" target="_blank" rel="noopener"><code class="inline">harvester.go</code></a></td>
         </tr>
         <tr>
           <td><b>Runner</b></td>
           <td>The object that <code class="inline">Start()</code>s and <code class="inline">Stop()</code>s a single input. The crawler keeps one per input.</td>
-          <td class="muted"><code class="inline">cfgfile.Runner</code> interface</td>
+          <td class="muted"><a href="https://github.com/orestisfl/beats/blob/1c56eff0926604d98ec13ad0a22be8bae3f8b901/libbeat/cfgfile/reload.go#L91" target="_blank" rel="noopener"><code class="inline">cfgfile.Runner</code></a> interface</td>
         </tr>
         <tr>
           <td><b>Config editor</b></td>
-          <td>A function <code class="inline">func(ClientConfig) (ClientConfig, error)</code> that runs <b>every time a client connects</b> and injects the input's fields, tags and <b>processors</b> into that client. This is the hot path in the bug.</td>
-          <td class="muted"><code class="inline">pipetool.ConfigEditor</code></td>
+          <td>A function <code class="inline">func(ClientConfig) (ClientConfig, error)</code> that runs <b>every time a client connects</b> and injects the input's fields, tags and <em>processors</em> into that client. This is the hot path in the bug.</td>
+          <td class="muted"><a href="https://github.com/orestisfl/beats/blob/1c56eff0926604d98ec13ad0a22be8bae3f8b901/libbeat/publisher/pipetool/pipetool.go#L36" target="_blank" rel="noopener"><code class="inline">pipetool.ConfigEditor</code></a></td>
         </tr>
         <tr>
           <td><b>Processor</b></td>
-          <td>An event transformer (<code class="inline">add_kubernetes_metadata</code>, <code class="inline">add_fields</code>, <code class="inline">drop_event</code>…). Some are stateful.</td>
-          <td class="muted"><code class="inline">libbeat/processors</code></td>
+          <td>An event transformer (<code class="inline">add_kubernetes_metadata</code>, <code class="inline">add_fields</code>, <code class="inline">drop_event</code>…). Some are <em>stateful</em>.</td>
+          <td class="muted"><a href="https://github.com/orestisfl/beats/tree/1c56eff0926604d98ec13ad0a22be8bae3f8b901/libbeat/processors" target="_blank" rel="noopener"><code class="inline">libbeat/processors</code></a></td>
         </tr>
       </table>
     </section>
