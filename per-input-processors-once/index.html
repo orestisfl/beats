@@ -200,6 +200,11 @@
           <td class="muted"><a href="https://github.com/orestisfl/beats/blob/1c56eff0926604d98ec13ad0a22be8bae3f8b901/libbeat/cfgfile/reload.go#L91" target="_blank" rel="noopener"><code class="inline">cfgfile.Runner</code></a> interface</td>
         </tr>
         <tr>
+          <td><b>Crawler</b></td>
+          <td>Loads the static <code class="inline">filebeat.inputs</code> at startup and creates one <b>Runner</b> per input through the factory, then <code class="inline">Start()</code>s each.</td>
+          <td class="muted"><a href="https://github.com/orestisfl/beats/blob/1c56eff0926604d98ec13ad0a22be8bae3f8b901/filebeat/beater/crawler.go#L34" target="_blank" rel="noopener"><code class="inline">filebeat/beater/crawler.go</code></a></td>
+        </tr>
+        <tr>
           <td><b>Config editor</b></td>
           <td>A function <code class="inline">func(ClientConfig) (ClientConfig, error)</code> that runs <b>every time a client connects</b> and injects the input's fields, tags and <em>processors</em> into that client. This is the hot path in the bug.</td>
           <td class="muted"><a href="https://github.com/orestisfl/beats/blob/1c56eff0926604d98ec13ad0a22be8bae3f8b901/libbeat/publisher/pipetool/pipetool.go#L36" target="_blank" rel="noopener"><code class="inline">pipetool.ConfigEditor</code></a></td>
