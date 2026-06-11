@@ -27,6 +27,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/elastic/beats/v7/libbeat/beat"
+	"github.com/elastic/beats/v7/libbeat/common"
 	"github.com/elastic/elastic-agent-libs/logp"
 	"github.com/elastic/elastic-agent-libs/mapstr"
 )
@@ -270,6 +271,51 @@ func init() {
 			},
 		)
 	})
+
+	// Expose the time accessors that scripts commonly call on time-typed event
+	// values (most importantly evt.Get("@timestamp"), which is a time.Time).
+	// These are registered as native, reflection-free methods so the default
+	// goja build keeps method-level dead-code elimination enabled; the reflective
+	// alternative (goja_reflect_methods build tag) retains every exported method
+	// of every reachable type binary-wide. See goja.RegisterNativeMethods.
+	AddSessionHook("_methods_time", func(s Session) {
+		rt := s.Runtime()
+		rt.RegisterNativeMethods(reflect.TypeOf(time.Time{}),
+			timeNativeMethods(rt, func(this any) time.Time { return this.(time.Time) }))
+		rt.RegisterNativeMethods(reflect.TypeOf(common.Time{}),
+			timeNativeMethods(rt, func(this any) time.Time { return time.Time(this.(common.Time)) }))
+	})
+}
+
+// timeNativeMethods builds the native method table for a time-like type. get
+// extracts the underlying time.Time from the JavaScript receiver. Each closure
+// references a time.Time method statically, so the linker keeps exactly those
+// methods alive without the reflective dispatch that would defeat dead-code
+// elimination.
+func timeNativeMethods(rt *goja.Runtime, get func(this any) time.Time) map[string]goja.NativeMethod {
+	num := func(fn func(time.Time) int64) goja.NativeMethod {
+		return func(this any, _ goja.FunctionCall) goja.Value { return rt.ToValue(fn(get(this))) }
+	}
+	return map[string]goja.NativeMethod{
+		"Unix":       num(func(t time.Time) int64 { return t.Unix() }),
+		"UnixMilli":  num(func(t time.Time) int64 { return t.UnixMilli() }),
+		"UnixNano":   num(func(t time.Time) int64 { return t.UnixNano() }),
+		"Year":       num(func(t time.Time) int64 { return int64(t.Year()) }),
+		"Month":      num(func(t time.Time) int64 { return int64(t.Month()) }),
+		"Day":        num(func(t time.Time) int64 { return int64(t.Day()) }),
+		"Hour":       num(func(t time.Time) int64 { return int64(t.Hour()) }),
+		"Minute":     num(func(t time.Time) int64 { return int64(t.Minute()) }),
+		"Second":     num(func(t time.Time) int64 { return int64(t.Second()) }),
+		"Nanosecond": num(func(t time.Time) int64 { return int64(t.Nanosecond()) }),
+		"Weekday":    num(func(t time.Time) int64 { return int64(t.Weekday()) }),
+		"YearDay":    num(func(t time.Time) int64 { return int64(t.YearDay()) }),
+		"String": func(this any, _ goja.FunctionCall) goja.Value {
+			return rt.ToValue(get(this).String())
+		},
+		"Format": func(this any, call goja.FunctionCall) goja.Value {
+			return rt.ToValue(get(this).Format(call.Argument(0).String()))
+		},
+	}
 }
 
 type sessionPool struct {
