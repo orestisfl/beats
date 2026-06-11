@@ -34,6 +34,21 @@ type beatProcessor struct {
 	p  processor
 }
 
+// newProcessorObject exposes a beatProcessor to javascript as an explicit object
+// instead of runtime.ToValue(bp). ToValue would reflect bp and dispatch Run()
+// through reflect.Value.Method, which forces the linker to retain every exported
+// method of every reachable type (defeating method-level dead-code elimination).
+// Setting Run as a native function references bp.Run directly (so it stays live),
+// and stashing bp under "_private" lets the chain builder recover the underlying
+// processor without reflecting its method set. This mirrors how beatEventV0
+// exposes the event API.
+func newProcessorObject(runtime *goja.Runtime, bp *beatProcessor) *goja.Object {
+	o := runtime.NewObject()
+	_ = o.Set("Run", bp.Run)
+	_ = o.Set("_private", bp)
+	return o
+}
+
 func (bp *beatProcessor) Run(call goja.FunctionCall) goja.Value {
 	if len(call.Arguments) != 1 {
 		panic(bp.rt.NewGoError(errors.New("Run requires one argument")))
@@ -75,7 +90,7 @@ func newConstructor(
 		}
 
 		bp := &beatProcessor{runtime, p}
-		return runtime.ToValue(bp).ToObject(nil)
+		return newProcessorObject(runtime, bp)
 	}
 }
 

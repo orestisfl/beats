@@ -84,6 +84,18 @@ func (b *chainBuilder) Add(call goja.FunctionCall) goja.Value {
 		panic(b.runtime.NewGoError(errors.New("Add requires a processor object parameter, but got undefined")))
 	}
 
+	// Processor objects created by newProcessorObject carry the *beatProcessor
+	// under "_private" so we can recover the underlying processor without
+	// reflecting (and thus retaining) its method set.
+	if obj, ok := a0.(*goja.Object); ok {
+		if priv := obj.Get("_private"); priv != nil {
+			if bp, ok := priv.Export().(*beatProcessor); ok {
+				b.procs = append(b.procs, bp.p)
+				return b.this
+			}
+		}
+	}
+
 	switch v := a0.Export().(type) {
 	case *beatProcessor:
 		b.procs = append(b.procs, v.p)
@@ -103,7 +115,7 @@ func (b *chainBuilder) Build(call goja.FunctionCall) goja.Value {
 	}
 
 	p := &beatProcessor{b.runtime, &b.chain}
-	return b.runtime.ToValue(p)
+	return newProcessorObject(b.runtime, p)
 }
 
 type gojaCall interface {
