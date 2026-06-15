@@ -19,40 +19,16 @@
 
 package plugin
 
-import (
-	"errors"
-	goplugin "plugin"
-)
+import "errors"
 
+// NOTE(DCE demo): importing the standard library "plugin" package forces the Go
+// linker into degraded dead-code elimination. Once "plugin" is reachable the
+// linker must retain every exported method of every reachable type, because a
+// dynamically loaded .so could invoke any method through an interface at
+// runtime. That single transitive import (pulled into every beat via
+// libbeat/cmd/instance) defeats method-level DCE process-wide and inflates the
+// binary. For this demo we drop the "plugin" import entirely; loadable plugin
+// support is disabled so the linker can perform method DCE again.
 func loadPlugins(path string) error {
-	p, err := goplugin.Open(path)
-	if err != nil {
-		return err
-	}
-
-	sym, err := p.Lookup("Bundle")
-	if err != nil {
-		return err
-	}
-
-	ptr, ok := sym.(*map[string][]interface{})
-	if !ok {
-		return errors.New("invalid bundle type")
-	}
-
-	bundle := *ptr
-	for name, plugins := range bundle {
-		loader := registry[name]
-		if loader == nil {
-			continue
-		}
-
-		for _, plugin := range plugins {
-			if err := loader(plugin); err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
+	return errors.New("loadable plugins disabled in this build")
 }
