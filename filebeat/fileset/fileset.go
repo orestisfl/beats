@@ -29,12 +29,15 @@ import (
 	"reflect"
 	"runtime"
 	"strings"
-	"text/template"
 
 	"github.com/elastic/go-ucfg"
 
 	"gopkg.in/yaml.v2"
 
+	// template is an in-repo fork of the standard library text/template with
+	// reflective method dispatch removed so the Go linker can keep method-level
+	// dead-code elimination enabled. See the package docs for details.
+	"github.com/elastic/beats/v7/filebeat/fileset/internal/template"
 	"github.com/elastic/beats/v7/libbeat/beat"
 	"github.com/elastic/beats/v7/libbeat/common"
 	"github.com/elastic/beats/v7/libbeat/common/cfgwarn"

@@ -140,6 +140,8 @@ func AddLicenseHeaders() error {
 			licenser.Exclude("x-pack"),
 			licenser.Exclude("generator/_templates/beat/{beat}"),
 			licenser.Exclude("generator/_templates/metricbeat/{beat}"),
+			// Verbatim fork of Go's text/template; keep its BSD headers.
+			licenser.Exclude("filebeat/fileset/internal/template"),
 		),
 		licenser(
 			licenser.License("Elastic"),
@@ -164,6 +166,8 @@ func CheckLicenseHeaders() error {
 			licenser.Exclude("x-pack"),
 			licenser.Exclude("generator/_templates/beat/{beat}"),
 			licenser.Exclude("generator/_templates/metricbeat/{beat}"),
+			// Verbatim fork of Go's text/template; keep its BSD headers.
+			licenser.Exclude("filebeat/fileset/internal/template"),
 		),
 		licenser(
 			licenser.Check(),
