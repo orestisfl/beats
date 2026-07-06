@@ -69,6 +69,51 @@ func containerEvent(containerID string) *beat.Event {
 	}
 }
 
+func TestAnnotatorRun_ConcurrentInitPublishAndRun(t *testing.T) {
+	const readers = 100
+	const containerID = "init-publish-cid"
+
+	cfg := config.MustNewConfigFrom(map[string]any{
+		"lookup_fields": []string{"container.id"},
+	})
+	matcher, err := NewFieldMatcher(*cfg, logptest.NewTestingLogger(t, ""))
+	require.NoError(t, err)
+
+	processor := &kubernetesAnnotator{
+		log:   logptest.NewTestingLogger(t, selector),
+		cache: newCache(10 * time.Second),
+	}
+	processor.cache.set(containerID, metaMap(containerID))
+
+	start := make(chan struct{})
+	var wg sync.WaitGroup
+
+	// Publish the state exactly once, concurrently with the readers below.
+	wg.Go(func() {
+		<-start
+		setReady(processor, &Matchers{matchers: []Matcher{matcher}})
+	})
+
+	// Readers call the real Run while init is still publishing. Each must get either the
+	// un-enriched event (state not yet visible) or the fully enriched one.
+	for range readers {
+		wg.Go(func() {
+			<-start
+			out, runErr := processor.Run(containerEvent(containerID))
+			if runErr != nil {
+				t.Errorf("unexpected error: %v", runErr)
+				return
+			}
+			if out == nil {
+				t.Error("Run returned nil event")
+			}
+		})
+	}
+
+	close(start)
+	wg.Wait()
+}
+
 func TestAnnotatorRun_ConcurrentRace(t *testing.T) {
 	const goroutines = 100
 	const containerID = "race-cid"
@@ -135,11 +180,10 @@ func TestAnnotatorRun_EachEventAnnotatedIndependently(t *testing.T) {
 	require.NoError(t, err)
 
 	processor := &kubernetesAnnotator{
-		log:                 logptest.NewTestingLogger(t, selector),
-		cache:               newCache(10 * time.Second),
-		matchers:            &Matchers{matchers: []Matcher{matcher}},
-		kubernetesAvailable: true,
+		log:   logptest.NewTestingLogger(t, selector),
+		cache: newCache(10 * time.Second),
 	}
+	setReady(processor, &Matchers{matchers: []Matcher{matcher}})
 
 	for i := 0; i < goroutines; i++ {
 		cid := fmt.Sprintf("cid-%d", i)
@@ -293,11 +337,10 @@ func TestAnnotatorRun_SharedWrapper_EventIndependenceUnderConcurrency(t *testing
 
 	cache := newCache(10 * time.Second)
 	annotator := &kubernetesAnnotator{
-		log:                 logptest.NewTestingLogger(t, selector),
-		cache:               cache,
-		matchers:            &Matchers{matchers: []Matcher{matcher}},
-		kubernetesAvailable: true,
+		log:   logptest.NewTestingLogger(t, selector),
+		cache: cache,
 	}
+	setReady(annotator, &Matchers{matchers: []Matcher{matcher}})
 
 	// each goroutine has its own container ID in the cache.
 	for i := range goroutines {
