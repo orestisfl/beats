@@ -77,6 +77,11 @@ type filestream struct {
 	includeFileFingerprint    bool
 	hasLineFilter             bool
 
+	// harvesterState is the live scanner<->harvester channel shared with this
+	// input's prospector. It is nil for inputs constructed in tests that build
+	// the filestream struct directly; every access must be nil-safe.
+	harvesterState *fileStateTable
+
 	// Function references for testing
 	waitGracePeriodFn func(
 		ctx input.Context,
@@ -136,7 +141,11 @@ func configure(
 
 	c.TakeOver.LogWarnings(log)
 
-	prospector, err := newProspector(c, log, src)
+	// The table is the live scanner<->harvester channel. It is shared by this
+	// input's single prospector and all its harvesters.
+	harvesterState := newFileStateTable()
+
+	prospector, err := newProspector(c, log, src, harvesterState)
 	if err != nil {
 		return nil, nil, fmt.Errorf("cannot create prospector: %w", err)
 	}
@@ -159,6 +168,7 @@ func configure(
 		includeFileFingerprint:    c.IncludeFileFingerprint,
 		hasLineFilter:             len(c.Reader.IncludeLines) > 0 || len(c.Reader.ExcludeLines) > 0,
 		deleterConfig:             c.Delete,
+		harvesterState:            harvesterState,
 		waitGracePeriodFn:         waitGracePeriod,
 		tickFn:                    time.Tick,
 		removeFn:                  os.Remove,
@@ -225,7 +235,9 @@ func (inp *filestream) Test(src loginp.Source, ctx input.TestContext) error {
 		return fmt.Errorf("not file source")
 	}
 
-	reader, _, _, err := inp.open(ctx.Logger, ctx.Cancelation, fs, 0)
+	// Test must not register a table handle: it opens the file only to validate
+	// the configuration and does not run a harvester, so a nil handle is passed.
+	reader, _, _, err := inp.open(ctx.Logger, ctx.Cancelation, fs, 0, nil)
 	if err != nil {
 		return err
 	}
@@ -252,12 +264,21 @@ func (inp *filestream) Run(
 		return nil
 	}
 
+	// Register this harvester in the shared file-state table so the prospector
+	// can observe the fstat identity of its open fd and refresh its descriptor.
+	// It is registered after the EOF short-circuit above so a file that is not
+	// harvested never leaves a ghost entry.
+	h := inp.harvesterState.Register(src.Name(), fs.desc)
+
 	// The reader is tied to ctx.Cancelation so it exits promptly on shutdown
 	// (upstream behavior). When read_until_eof is enabled, it "resets" the
 	// reader via startReadUntilEOF by swapping in a fresh, read_until_eof-scoped
 	// context so the drain read can proceed past ctx.Cancelation.
-	r, startReadUntilEOF, truncated, err := inp.open(log, ctx.Cancelation, fs, state.Offset)
+	r, startReadUntilEOF, truncated, err := inp.open(log, ctx.Cancelation, fs, state.Offset, h)
 	if err != nil {
+		// The harvester never got a working fd; drop its table handle now since
+		// the deferred Deregister below is not installed on this path.
+		inp.harvesterState.Deregister(h)
 		log.Errorf("File could not be opened for reading: %v", err)
 		return err
 	}
@@ -283,6 +304,11 @@ func (inp *filestream) Run(
 			log.Errorf("Error stopping filestream reader: %v", err)
 		}
 	}()
+
+	// Installed after the r.Close() defer so LIFO ordering deregisters the
+	// handle BEFORE the fd is closed: the pin must never outlive the fd, which
+	// is what makes the kernel's inode-not-reused-while-open guarantee sound.
+	defer inp.harvesterState.Deregister(h)
 
 	// The caller of Run already reports the error and filters out errors that
 	// must not be reported, like 'context cancelled'.
@@ -488,12 +514,20 @@ func (inp *filestream) open(
 	canceler input.Canceler,
 	fs fileSource,
 	offset int64,
+	h *openFileState,
 ) (reader.Reader, func(ctxtool.CancelContext), bool, error) {
 
-	f, encoding, truncated, err := inp.openFile(log, fs.newPath, offset)
+	f, encoding, fi, truncated, err := inp.openFile(log, fs.newPath, offset)
 	if err != nil {
 		return nil, nil, truncated, err
 	}
+
+	// Pin the fstat identity of the open fd. The prospector compares this pin
+	// with the scan-time stat of a renamed-to path to decide whether the
+	// running harvester still reads the backing file the identity now lives on.
+	// GetOSState works for GZIP too: gzipSeekerReader.Stat delegates to the raw
+	// *os.File. h is nil for Test()/nil-table callers; PinOSState is nil-safe.
+	h.PinOSState(file.GetOSState(fi))
 
 	if truncated {
 		offset = 0
@@ -579,31 +613,34 @@ func (inp *filestream) open(
 // the file system is scanned.
 //
 // openFile will also detect and handle file truncation. If a file is truncated
-// then the 3rd return value is true.
+// then the 4th return value is true.
+//
+// The returned os.FileInfo is the fstat of the OPEN fd (from f.Stat), so the
+// caller can pin the fd's identity without an extra stat. It is nil on error.
 func (inp *filestream) openFile(
 	log *logp.Logger,
 	path string,
 	offset int64,
-) (File, encoding.Encoding, bool, error) {
+) (File, encoding.Encoding, os.FileInfo, bool, error) {
 	fi, err := os.Stat(path)
 	if err != nil {
-		return nil, nil, false, fmt.Errorf("failed to stat source file %s: %w", path, err)
+		return nil, nil, nil, false, fmt.Errorf("failed to stat source file %s: %w", path, err)
 	}
 
 	// it must be checked if the file is not a named pipe before we try to open it
 	// if it is a named pipe os.OpenFile fails, so there is no need to try opening it.
 	if fi.Mode()&os.ModeNamedPipe != 0 {
-		return nil, nil, false, fmt.Errorf("failed to open file %s, named pipes are not supported", fi.Name())
+		return nil, nil, nil, false, fmt.Errorf("failed to open file %s, named pipes are not supported", fi.Name())
 	}
 
 	rawFile, err := file.ReadOpen(path)
 	if err != nil {
-		return nil, nil, false, fmt.Errorf("failed opening %s: %w", path, err)
+		return nil, nil, nil, false, fmt.Errorf("failed opening %s: %w", path, err)
 	}
 
 	f, err := inp.newFile(rawFile)
 	if err != nil {
-		return nil, nil, false,
+		return nil, nil, nil, false,
 			fmt.Errorf("failed to create a File from a os.File: %w", err)
 	}
 
@@ -612,12 +649,12 @@ func (inp *filestream) openFile(
 
 	fi, err = f.Stat()
 	if err != nil {
-		return nil, nil, false, fmt.Errorf("failed to stat source file %s: %w", path, err)
+		return nil, nil, nil, false, fmt.Errorf("failed to stat source file %s: %w", path, err)
 	}
 
 	err = checkFileBeforeOpening(fi)
 	if err != nil {
-		return nil, nil, false, err
+		return nil, nil, nil, false, err
 	}
 
 	truncated := false
@@ -641,19 +678,19 @@ func (inp *filestream) openFile(
 
 	err = inp.initFileOffset(f, offset)
 	if err != nil {
-		return nil, nil, truncated, err
+		return nil, nil, nil, truncated, err
 	}
 
 	enc, err := inp.encodingFactory(f)
 	if err != nil {
 		if errors.Is(err, transform.ErrShortSrc) {
-			return nil, nil, truncated, fmt.Errorf("initialising encoding for '%v' failed due to file being too short", f)
+			return nil, nil, nil, truncated, fmt.Errorf("initialising encoding for '%v' failed due to file being too short", f)
 		}
-		return nil, nil, truncated, fmt.Errorf("initialising encoding for '%v' failed: %w", f, err)
+		return nil, nil, nil, truncated, fmt.Errorf("initialising encoding for '%v' failed: %w", f, err)
 	}
 
 	ok = true // no need to close the file
-	return f, enc, truncated, nil
+	return f, enc, fi, truncated, nil
 }
 
 // newFile wraps the given os.File into an appropriate File interface implementation.

@@ -92,7 +92,8 @@ func logFileIdentifiers(logger *logp.Logger) map[string]file.StateIdentifier {
 func newProspector(
 	config config,
 	log *logp.Logger,
-	srci *loginp.SourceIdentifier) (loginp.Prospector, error) {
+	srci *loginp.SourceIdentifier,
+	harvesterState *fileStateTable) (loginp.Prospector, error) {
 
 	logger := log.Named("filestream").With("id", config.ID)
 	err := checkConfigCompatibility(config)
@@ -134,6 +135,7 @@ func newProspector(
 		filestreamIdentifiers: filestreamFileIdentifiers(logger, config.Reader.Parsers.Suffix),
 		logIdentifiers:        logFileIdentifiers(logger),
 		growingFingerprint:    config.FileWatcher.Scanner.Fingerprint.Growing,
+		harvesterState:        harvesterState,
 	}
 	if config.Rotation == nil {
 		return &fileprospector, nil

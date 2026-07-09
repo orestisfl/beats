@@ -89,6 +89,11 @@ type fileProspector struct {
 	logIdentifiers        map[string]file.StateIdentifier
 	shortFingerprints     *shortFingerprintSet
 	growingFingerprint    bool
+
+	// harvesterState is the live scanner<->harvester channel shared with this
+	// input's harvesters. It is nil for prospectors built directly in tests;
+	// every access must be nil-safe.
+	harvesterState *fileStateTable
 }
 
 func (p *fileProspector) previousID(name string, fd loginp.FileDescriptor, v loginp.TakeOverState) string {
@@ -487,6 +492,17 @@ func (p *fileProspector) onFSEvent(
 	default:
 		log.Errorf("Unknown operation '%s'", event.Op.String())
 	}
+
+	// Refresh the shared table's descriptor for this identity. This runs after
+	// the switch so any growing-fingerprint key migration has already rekeyed
+	// the table (see migrateGrowingFingerprint): on the threshold-crossing scan
+	// the update must land under the migrated key, or a file that then goes
+	// quiet would never deliver its completed fingerprint Sum. UpdateDescriptor
+	// only touches files with an open harvester (update-if-present); OpDelete
+	// carries no live descriptor, so it is skipped.
+	if event.Op != loginp.OpDelete {
+		p.harvesterState.UpdateDescriptor(src.Name(), event.Descriptor)
+	}
 }
 
 func (p *fileProspector) isFileIgnored(log *logp.Logger, fe loginp.FSEvent, ignoreInactiveSince time.Time) bool {
@@ -791,6 +807,14 @@ func (p *fileProspector) migrateGrowingFingerprint(
 
 	p.shortFingerprints.Remove(oldKey)
 	p.indexGrowingFingerprint(newKey, event.Descriptor, event.NewPath)
+
+	// The registry key migrated successfully; move the shared table handle to
+	// the new identity so the prospector and harvester keep agreeing on the
+	// key. The table is keyed by the identity tail, which for oldKey is
+	// rk.identity() and for the new key is newSrc.Name().
+	if rk, ok := parseRegistryKey(oldKey); ok {
+		p.harvesterState.Rekey(rk.identity(), newSrc.Name())
+	}
 
 	return nil
 }

@@ -49,7 +49,7 @@ func TestCreateProspector(t *testing.T) {
 				c := config{
 					IgnoreInactive: ignoreInactiveSettings[test.ignore_inactive_since],
 				}
-				p, _ := newProspector(c, logp.NewNopLogger(), mustSourceIdentifier("foo-id"))
+				p, _ := newProspector(c, logp.NewNopLogger(), mustSourceIdentifier("foo-id"), newFileStateTable())
 				fileProspector := p.(*fileProspector) //nolint:errcheck // we know the type
 				assert.Equal(t, fileProspector.ignoreInactiveSince, ignoreInactiveSettings[test.ignore_inactive_since])
 			})
@@ -103,7 +103,7 @@ prospector.scanner.fingerprint.enabled: false
 				err = c.Unpack(&cfg)
 				require.NoError(t, err)
 
-				_, err = newProspector(cfg, logp.NewNopLogger(), mustSourceIdentifier("foo-id"))
+				_, err = newProspector(cfg, logp.NewNopLogger(), mustSourceIdentifier("foo-id"), newFileStateTable())
 				if tc.err == "" {
 					require.NoError(t, err)
 					return
@@ -150,7 +150,7 @@ rotation.external.strategy.copytruncate:
 				require.NoError(t, c.Unpack(&cfg), "test config must unpack into filestream config")
 				require.NoError(t, normalizeConfig(c, &cfg), "normalizeConfig must succeed")
 
-				p, err := newProspector(cfg, logp.NewNopLogger(), mustSourceIdentifier("foo-id"))
+				p, err := newProspector(cfg, logp.NewNopLogger(), mustSourceIdentifier("foo-id"), newFileStateTable())
 				require.NoError(t, err, "creating the prospector must succeed")
 
 				if tc.wantCopyTruncate {
