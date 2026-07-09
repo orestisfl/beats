@@ -118,6 +118,7 @@ func newProspector(
 		config.Delete.Enabled,
 		identifier,
 		srci,
+		harvesterState,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("error while creating filewatcher %w", err)

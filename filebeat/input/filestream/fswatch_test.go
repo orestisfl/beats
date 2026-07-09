@@ -1230,6 +1230,7 @@ scanner:
 			false,
 			mustPathIdentifier(false),
 			mustSourceIdentifier("foo-id"),
+			nil,
 		)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "fingerprint size 1 bytes cannot be smaller than 64 bytes")
@@ -1537,6 +1538,7 @@ func createWatcherWithConfig(t *testing.T, logger *logp.Logger, paths []string, 
 		false,
 		mustPathIdentifier(false),
 		mustSourceIdentifier("foo-id"),
+		nil,
 	)
 	require.NoError(t, err)
 
@@ -1923,4 +1925,108 @@ func parseLogs(buff string) []logEntry {
 	}
 
 	return logEntries
+}
+
+// TestFileScannerReusesPinnedHarvesterFingerprint verifies the scan-cost
+// optimization: when an open harvester pins a file's inode and the file is
+// unchanged, the scanner reuses the harvester's fingerprint instead of
+// re-reading and re-hashing it. The reuse is proven by seeding the table with a
+// SENTINEL fingerprint that differs from the file's real fingerprint: if the
+// scanner returns the sentinel it skipped the read, if it returns the real sum
+// it re-read.
+func TestFileScannerReusesPinnedHarvesterFingerprint(t *testing.T) {
+	const sentinelSum = "cached-sentinel-sum"
+	cfg := fileScannerConfig{
+		Fingerprint: fingerprintConfig{Enabled: true, Offset: 0, Length: 64},
+	}
+
+	// setup writes a file large enough for a complete fingerprint and returns
+	// its path, its stat, and the real fingerprint a fresh (table-less) scan
+	// produces.
+	setup := func(t *testing.T) (path string, info file.ExtendedFileInfo, realSum string) {
+		t.Helper()
+		path = filepath.Join(t.TempDir(), "app.log")
+		require.NoError(t, os.WriteFile(path, []byte(strings.Repeat("A", 128)), 0o600), "writing test file")
+
+		s, err := newFileScanner(logp.NewNopLogger(), []string{path}, cfg, CompressionNone)
+		require.NoError(t, err)
+		files, _ := s.GetFiles(loginp.FileScanOptions{})
+		fd, ok := files[path]
+		require.True(t, ok, "setup scan must find the file")
+		require.True(t, fd.Fingerprint.Complete(), "setup file must produce a complete fingerprint")
+
+		fi, err := os.Stat(path)
+		require.NoError(t, err)
+		return path, file.ExtendFileInfo(fi), fd.Fingerprint.Sum
+	}
+
+	scanSum := func(t *testing.T, path string, tbl *fileStateTable) string {
+		t.Helper()
+		s, err := newFileScanner(logp.NewNopLogger(), []string{path}, cfg, CompressionNone)
+		require.NoError(t, err)
+		s.harvesterState = tbl
+		files, _ := s.GetFiles(loginp.FileScanOptions{})
+		fd, ok := files[path]
+		require.True(t, ok, "scan must find the file")
+		return fd.Fingerprint.Sum
+	}
+
+	// seedPinned registers a handle carrying the given cached fingerprint,
+	// pinned to the file's own inode.
+	seedPinned := func(tbl *fileStateTable, info file.ExtendedFileInfo, fp loginp.FingerprintID) {
+		h := tbl.Register("id", loginp.FileDescriptor{Info: info, Fingerprint: fp})
+		h.PinOSState(info.GetOSState())
+	}
+
+	t.Run("reuses the cached fingerprint for an unchanged pinned file", func(t *testing.T) {
+		path, info, realSum := setup(t)
+		tbl := newFileStateTable()
+		seedPinned(tbl, info, completeFP(sentinelSum))
+
+		got := scanSum(t, path, tbl)
+		assert.Equal(t, sentinelSum, got, "the scanner must reuse the pinned fingerprint instead of re-reading")
+		assert.NotEqual(t, realSum, got, "sanity: the cached sentinel differs from the real fingerprint")
+	})
+
+	t.Run("re-reads when the file changed since the cached descriptor", func(t *testing.T) {
+		path, info, realSum := setup(t)
+		tbl := newFileStateTable()
+		seedPinned(tbl, info, completeFP(sentinelSum))
+
+		// Bump mtime so the current stat no longer matches the cached Info.
+		future := time.Now().Add(time.Hour)
+		require.NoError(t, os.Chtimes(path, future, future))
+
+		assert.Equal(t, realSum, scanSum(t, path, tbl), "a changed file must be re-fingerprinted")
+	})
+
+	t.Run("re-reads when the cached fingerprint is still growing", func(t *testing.T) {
+		path, info, realSum := setup(t)
+		tbl := newFileStateTable()
+		seedPinned(tbl, info, loginp.FingerprintID{Raw: "deadbeef"}) // incomplete
+
+		assert.Equal(t, realSum, scanSum(t, path, tbl), "a still-growing pinned file must be re-fingerprinted")
+	})
+
+	t.Run("re-reads when the file is not pinned", func(t *testing.T) {
+		path, info, realSum := setup(t)
+		tbl := newFileStateTable()
+		tbl.Register("id", loginp.FileDescriptor{Info: info, Fingerprint: completeFP(sentinelSum)}) // no PinOSState
+
+		assert.Equal(t, realSum, scanSum(t, path, tbl), "an unpinned entry must not be reused")
+	})
+
+	t.Run("re-reads when a different inode is pinned", func(t *testing.T) {
+		path, info, realSum := setup(t)
+		tbl := newFileStateTable()
+		h := tbl.Register("id", loginp.FileDescriptor{Info: info, Fingerprint: completeFP(sentinelSum)})
+		h.PinOSState(nonZeroOSState(t)) // a DIFFERENT inode
+
+		assert.Equal(t, realSum, scanSum(t, path, tbl), "a dev+ino mismatch must not reuse the cached fingerprint")
+	})
+
+	t.Run("nil table disables the optimization", func(t *testing.T) {
+		path, _, realSum := setup(t)
+		assert.Equal(t, realSum, scanSum(t, path, nil), "a nil table must fall back to reading the file")
+	})
 }

@@ -1,0 +1,10 @@
+kind: enhancement
+summary: |
+  Filestream's scanner now skips re-reading and re-hashing the fingerprint of a
+  file that an open harvester already holds, when the file is unchanged. The
+  kernel keeps an inode alive while a file descriptor references it, so a
+  dev+ino match against a pinned open fd proves the file is the same and its
+  cached fingerprint still applies. This makes per-scan CPU and I/O proportional
+  to change activity rather than to the number of matched files, which matters
+  for inputs watching many mostly-idle files with `file_identity.fingerprint`.
+component: filebeat

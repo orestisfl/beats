@@ -226,6 +226,7 @@ func TestFileWatcherNotifications(t *testing.T) {
 				false,
 				mustFingerprintIdentifier(),
 				mustSourceIdentifier("foo-id"),
+				nil,
 			)
 			if err != nil {
 				t.Fatalf("cannot create file watcher: %s", err)

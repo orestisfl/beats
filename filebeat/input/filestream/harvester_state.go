@@ -42,13 +42,19 @@ import (
 //
 // Concurrency: mu is a strict leaf lock. Writers are the harvester goroutine
 // (Register/PinOSState/Deregister) and the prospector event loop
-// (UpdateDescriptor/Rekey). Readers are the prospector (LookupOSState) and the
-// harvester hot path (openFileState.FingerprintSum, atomic-only, no lock). All
-// methods are safe to call on a nil receiver so tests can build prospectors and
-// harvesters without a table.
+// (UpdateDescriptor/Rekey). Readers are the prospector (LookupOSState), the
+// scanner (PinnedDescriptor) and the harvester hot path
+// (openFileState.FingerprintSum, atomic-only, no lock). All methods are safe to
+// call on a nil receiver so tests can build prospectors and harvesters without a
+// table.
 type fileStateTable struct {
 	mu      sync.Mutex
 	entries map[string]*openFileState
+	// byOS indexes pinned handles by their open fd's dev+ino
+	// (StateOS.Identifier()) so the scanner can recognise a file by its inode
+	// and reuse its fingerprint without re-reading it (see PinnedDescriptor).
+	// Only non-zero StateOS values are indexed. Guarded by mu.
+	byOS map[string]*openFileState
 }
 
 // openFileState is the per-open-file handle shared between one harvester and
@@ -76,6 +82,7 @@ type openFileState struct {
 func newFileStateTable() *fileStateTable {
 	return &fileStateTable{
 		entries: make(map[string]*openFileState),
+		byOS:    make(map[string]*openFileState),
 	}
 }
 
@@ -112,6 +119,12 @@ func (h *openFileState) PinOSState(st file.StateOS) {
 	h.table.mu.Lock()
 	h.os = st
 	h.pinned = true
+	// Index by dev+ino so the scanner can recognise this open file by its inode
+	// (see PinnedDescriptor). A zero StateOS is never indexed: it is not a usable
+	// identity (mirrors LookupOSState treating a zero pin as "no pin").
+	if st != (file.StateOS{}) {
+		h.table.byOS[st.Identifier()] = h
+	}
 	h.table.mu.Unlock()
 }
 
@@ -128,6 +141,13 @@ func (t *fileStateTable) Deregister(h *openFileState) {
 	t.mu.Lock()
 	if t.entries[h.name] == h {
 		delete(t.entries, h.name)
+	}
+	// Compare-and-delete from the dev+ino index too, so a handle displaced by a
+	// Restart that re-pinned the same inode does not evict the newer one. A
+	// non-zero os implies the handle was pinned (os is only ever set, together
+	// with pinned, by PinOSState).
+	if h.os != (file.StateOS{}) && t.byOS[h.os.Identifier()] == h {
+		delete(t.byOS, h.os.Identifier())
 	}
 	t.mu.Unlock()
 }
@@ -188,6 +208,31 @@ func (t *fileStateTable) LookupOSState(name string) (file.StateOS, bool) {
 		return file.StateOS{}, false
 	}
 	return h.os, true
+}
+
+// PinnedDescriptor returns the latest descriptor of the open harvester whose fd
+// is pinned to the given fstat identity. It lets the scanner recognise a file by
+// its inode (dev+ino) and reuse the already-computed fingerprint instead of
+// re-reading it. ok is false for a zero StateOS or when no open harvester pins
+// that inode. The caller must still confirm the file is unchanged (size/mtime)
+// and the fingerprint is complete before reusing it.
+func (t *fileStateTable) PinnedDescriptor(st file.StateOS) (loginp.FileDescriptor, bool) {
+	if t == nil || st == (file.StateOS{}) {
+		return loginp.FileDescriptor{}, false
+	}
+
+	t.mu.Lock()
+	h, ok := t.byOS[st.Identifier()]
+	t.mu.Unlock()
+	if !ok {
+		return loginp.FileDescriptor{}, false
+	}
+
+	d := h.desc.Load()
+	if d == nil {
+		return loginp.FileDescriptor{}, false
+	}
+	return *d, true
 }
 
 // FingerprintSum returns the file's completed SHA-256 fingerprint, or "" when

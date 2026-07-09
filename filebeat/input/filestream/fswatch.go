@@ -115,6 +115,7 @@ func newFileWatcher(
 	sendNotChanged bool,
 	fi fileIdentifier,
 	srci *loginp.SourceIdentifier,
+	harvesterState *fileStateTable,
 ) (*fileWatcher, error) {
 
 	config.SendNotChanged = sendNotChanged
@@ -122,6 +123,10 @@ func newFileWatcher(
 	if err != nil {
 		return nil, err
 	}
+	// The scanner reuses a pinned harvester's fingerprint to skip re-reading
+	// unchanged open files (see fileScanner.cachedFingerprint). nil in tests
+	// that construct the watcher directly, which disables the optimization.
+	scanner.harvesterState = harvesterState
 
 	return &fileWatcher{
 		log:              logger.Named(watcherDebugKey),
@@ -598,6 +603,13 @@ type fileScanner struct {
 	// prospector runs in Init/TakeOver cannot suppress the header a
 	// still-growing entry needs to migrate across a restart.
 	completedFingerprints map[string]struct{}
+
+	// harvesterState is the shared scanner<->harvester table. When a file is
+	// pinned open by a harvester, the scanner reuses the harvester's already
+	// computed fingerprint instead of re-reading the file (cachedFingerprint).
+	// It is nil when the optimization is disabled (e.g. tests, or a watcher
+	// built without a table).
+	harvesterState *fileStateTable
 }
 
 func newFileScanner(logger *logp.Logger, paths []string, config fileScannerConfig, compression string) (*fileScanner, error) {
@@ -829,6 +841,35 @@ func (s *fileScanner) getIngestTarget(filename string) (it ingestTarget, err err
 	return it, nil
 }
 
+// cachedFingerprint returns a previously computed descriptor for the file when
+// an open harvester pins this exact inode (dev+ino) and the file is unchanged
+// since that descriptor was taken. It lets the scanner skip re-reading and
+// re-hashing the fingerprint region.
+//
+// Soundness rests on the kernel keeping an inode alive while a fd references it:
+// a dev+ino match against a pinned OPEN fd proves this is the same physical file
+// the harvester is reading (the inode cannot have been reused), so that file's
+// fingerprint still applies. Two conditions gate the reuse:
+//   - Complete only: a still-growing file's fingerprint is incomplete and must
+//     be re-read every scan until it crosses the threshold and migrates.
+//   - Unchanged only: any write (append, truncate, in-place edit) bumps size or
+//     mtime, so an equal size+mtime means the fingerprint region is untouched.
+//     This mirrors the size/mtime signal the watcher already uses to detect an
+//     unchanged file.
+func (s *fileScanner) cachedFingerprint(info commonfile.ExtendedFileInfo) (loginp.FileDescriptor, bool) {
+	cached, ok := s.harvesterState.PinnedDescriptor(info.GetOSState())
+	if !ok || !cached.Fingerprint.Complete() {
+		return loginp.FileDescriptor{}, false
+	}
+
+	if cached.Info == nil ||
+		cached.Info.Size() != info.Size() ||
+		!cached.Info.ModTime().Equal(info.ModTime()) {
+		return loginp.FileDescriptor{}, false
+	}
+	return cached, true
+}
+
 // toFileDescriptor builds a FileDescriptor for the given ingest target.
 // With fingerprinting enabled, it computes the file's identity according to
 // the threshold rules:
@@ -853,6 +894,14 @@ func (s *fileScanner) toFileDescriptor(it *ingestTarget) (fd loginp.FileDescript
 	fd.Info = it.info
 
 	if !s.cfg.Fingerprint.Enabled {
+		return fd, nil
+	}
+
+	// Reuse a pinned harvester's fingerprint instead of re-reading and
+	// re-hashing an unchanged open file. See cachedFingerprint for soundness.
+	if cached, ok := s.cachedFingerprint(it.info); ok {
+		fd.Fingerprint = cached.Fingerprint
+		fd.GZIP = cached.GZIP
 		return fd, nil
 	}
 

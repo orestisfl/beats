@@ -224,6 +224,63 @@ func TestFileStateTable_NilSafety(t *testing.T) {
 	tbl.Deregister(realHandle) // nil table, real handle: still a no-op, no panic
 }
 
+func TestFileStateTable_PinnedDescriptor(t *testing.T) {
+	tbl := newFileStateTable()
+	osState := nonZeroOSState(t)
+
+	// No entry indexed by this inode yet.
+	_, ok := tbl.PinnedDescriptor(osState)
+	assert.False(t, ok, "PinnedDescriptor must fail before any pin")
+
+	h := tbl.Register("id-1", completeDesc("sum-1"))
+	// Registered but not pinned: the dev+ino index is only populated by PinOSState.
+	_, ok = tbl.PinnedDescriptor(osState)
+	assert.False(t, ok, "PinnedDescriptor must fail before PinOSState")
+
+	h.PinOSState(osState)
+	got, ok := tbl.PinnedDescriptor(osState)
+	assert.True(t, ok, "PinnedDescriptor must resolve a pinned inode")
+	assert.Equal(t, "sum-1", got.Fingerprint.Sum,
+		"PinnedDescriptor must return the pinned handle's descriptor")
+
+	tbl.Deregister(h)
+	_, ok = tbl.PinnedDescriptor(osState)
+	assert.False(t, ok, "PinnedDescriptor must fail after Deregister clears the index")
+}
+
+func TestFileStateTable_PinnedDescriptorZeroOSNotIndexed(t *testing.T) {
+	tbl := newFileStateTable()
+	h := tbl.Register("id-1", completeDesc("sum"))
+
+	// A zero StateOS is not a usable identity and must not be indexed for reuse.
+	h.PinOSState(file.StateOS{})
+	_, ok := tbl.PinnedDescriptor(file.StateOS{})
+	assert.False(t, ok, "a zero StateOS must not be indexed by dev+ino")
+}
+
+func TestFileStateTable_PinnedDescriptorRestartOverlap(t *testing.T) {
+	tbl := newFileStateTable()
+	osState := nonZeroOSState(t)
+
+	// Restart overlap: the restarted harvester re-pins the SAME inode before the
+	// displaced one deregisters (overwrite-on-insert, newest wins).
+	old := tbl.Register("id-1", completeDesc("old"))
+	old.PinOSState(osState)
+	newer := tbl.Register("id-1", completeDesc("new"))
+	newer.PinOSState(osState)
+
+	// The displaced handle deregisters: it must NOT evict the newer handle's
+	// dev+ino index entry.
+	tbl.Deregister(old)
+	got, ok := tbl.PinnedDescriptor(osState)
+	assert.True(t, ok, "the newer handle must keep the dev+ino index after the displaced one deregisters")
+	assert.Equal(t, "new", got.Fingerprint.Sum, "the surviving index entry must be the newer handle's")
+
+	tbl.Deregister(newer)
+	_, ok = tbl.PinnedDescriptor(osState)
+	assert.False(t, ok, "the newer handle's Deregister must clear the dev+ino index")
+}
+
 // TestFileStateTable_ConcurrentAccess exercises every writer and reader from
 // separate goroutines so the race detector can flag unguarded access. Run with
 // -race.
@@ -249,12 +306,14 @@ func TestFileStateTable_ConcurrentAccess(t *testing.T) {
 			}
 		}(key)
 
-		// Prospector goroutine: UpdateDescriptor, Rekey, LookupOSState.
+		// Prospector/scanner goroutine: UpdateDescriptor, Rekey, LookupOSState,
+		// and the scanner's dev+ino reverse lookup.
 		go func(key string) {
 			defer wg.Done()
 			for j := 0; j < 200; j++ {
 				tbl.UpdateDescriptor(key, completeDesc("sum"))
 				_, _ = tbl.LookupOSState(key)
+				_, _ = tbl.PinnedDescriptor(pinned)
 				tbl.Rekey(key, key+"-moved")
 				tbl.Rekey(key+"-moved", key)
 			}
