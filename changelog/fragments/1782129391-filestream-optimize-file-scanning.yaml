@@ -17,11 +17,11 @@ summary: Make file scanning in the filestream input faster and lighter on memory
 # this field accommodate a description without length limits.
 description: >
   The filestream input now finds the files matching your "paths" by walking each
-  directory only once and skipping excluded files as it goes, instead of first
-  listing every match and applying "exclude_files" afterwards. When the paths
+  directory only once instead of expanding each glob separately. When the paths
   match many files — for example a broad "**" pattern, or an "exclude_files" list
-  that drops most of the matches — each scan uses roughly 60-90% less time and
-  memory. The set of files that get ingested does not change.
+  that drops most of the matches — scans use substantially less time and memory.
+  If several paths resolve to the same file identity, the lexicographically first
+  absolute path is now selected, independent of configured pattern order.
 
 # Affected component; usually one of "elastic-agent", "fleet-server", "filebeat", "metricbeat", "auditbeat", "all", etc.
 component: filebeat

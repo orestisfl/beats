@@ -184,8 +184,9 @@ func (w *fileWatcher) watch(
 		IgnoreOlder:         ignoreOlder,
 		IgnoreInactiveSince: ignoreInactiveSince,
 	}
-	paths, scanMetrics, unobservable := w.scanner.GetFiles(scanOpts)
-	metrics.UpdateFileScanMetrics(scanMetrics)
+	scanResult := w.scanner.GetFiles(scanOpts)
+	paths := scanResult.Files
+	metrics.UpdateFileScanMetrics(scanResult.Metrics)
 
 	// for debugging purposes
 	writtenCount := 0
@@ -390,9 +391,9 @@ func (w *fileWatcher) watch(
 	// unobservable directory: it was already emitted as a rename above, so only
 	// entries that matched no rename reach this point.
 	postponed := 0
-	if len(unobservable) > 0 {
-		unobservableSet := make(map[string]struct{}, len(unobservable))
-		for _, p := range unobservable {
+	if len(scanResult.Unobservable) > 0 {
+		unobservableSet := make(map[string]struct{}, len(scanResult.Unobservable))
+		for _, p := range scanResult.Unobservable {
 			unobservableSet[p] = struct{}{}
 		}
 		for remainingPath, remainingDesc := range w.prev {
@@ -590,6 +591,6 @@ func (w *fileWatcher) Event() loginp.FSEvent {
 // completedFingerprints set, so these pre-watch scans cannot suppress the
 // bridging raw header a still-growing entry needs to migrate its registry key
 // after a restart.
-func (w *fileWatcher) GetFiles(opts loginp.FileScanOptions) (map[string]loginp.FileDescriptor, loginp.FileScanMetrics, []string) {
+func (w *fileWatcher) GetFiles(opts loginp.FileScanOptions) loginp.FileScanResult {
 	return w.scanner.GetFiles(opts)
 }

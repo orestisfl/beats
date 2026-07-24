@@ -1393,7 +1393,7 @@ ignored by `filestream` settings or state are excluded.
 | `files_ingested_percent_100` | Number of active plain-file harvesters whose read offset is at or beyond the scanner-observed file size. |
 | `files_ingested_percent_95_99` | Number of active plain-file harvesters whose read offset is at least 95% and less than 100% of the scanner-observed file size. |
 | `files_ingested_percent_lt_95` | Number of active plain-file harvesters whose read offset is less than 95% of the scanner-observed file size. |
-| `files_matched` | Number of filesystem path matches returned by the configured `paths` globs before duplicate, ignore, and ingestibility filtering. |
+| `files_matched` | Number of distinct filesystem paths matched by the configured `paths` globs before file-identity, ignore, and ingestibility filtering. A path matched by overlapping globs is counted once. |
 | `files_no_ingest_target` | Number of matched non-empty files that did not produce an ingest target, such as duplicate matches, files that are too small to fingerprint or symlinks to already known files. |
 | `files_unique` | Number of unique files that produced ingest targets after scanner filtering and de-duplication. |
 | `scan_errors` {applies_to}`stack: ga 9.6+` | Number of paths the last scan could not observe (for example a directory that could not be read, or a file that could not be stat'd or opened, because of file-descriptor exhaustion or permissions). A non-zero value means removal detection was postponed for the files under those paths to avoid re-ingestion; it does not count files that are genuinely gone. |

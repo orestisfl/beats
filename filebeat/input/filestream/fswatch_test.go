@@ -24,7 +24,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"maps"
 	"os"
@@ -1310,7 +1309,7 @@ scanner:
 		t.Run(tc.name, func(t *testing.T) {
 			logger := logptest.NewTestingLogger(t, "")
 			s := createScannerWithConfig(t, logger, paths, tc.cfgStr, tc.compression)
-			files, _, _ := s.GetFiles(loginp.FileScanOptions{})
+			files := s.GetFiles(loginp.FileScanOptions{}).Files
 			requireEqualFiles(t, tc.expDesc, files)
 		})
 	}
@@ -1328,11 +1327,11 @@ scanner:
 		// the glob for the very small files
 		paths := []string{filepath.Join(dir, undersizedGlob)}
 		s := createScannerWithConfig(t, logger, paths, cfgStr, CompressionNone)
-		files, _, _ := s.GetFiles(loginp.FileScanOptions{})
+		files := s.GetFiles(loginp.FileScanOptions{}).Files
 		require.Empty(t, files)
-		files, _, _ = s.GetFiles(loginp.FileScanOptions{})
+		files = s.GetFiles(loginp.FileScanOptions{}).Files
 		require.Empty(t, files)
-		files, _, _ = s.GetFiles(loginp.FileScanOptions{})
+		files = s.GetFiles(loginp.FileScanOptions{}).Files
 		require.Empty(t, files)
 
 		logs := parseLogs(buffer.String())
@@ -1425,7 +1424,7 @@ scanner:
 		s, err := newFileScanner(inMemoryLog, []string{filepath.Join(dir, "*.log")}, cfg, CompressionNone)
 		require.NoError(t, err)
 
-		files, _, _ := s.GetFiles(loginp.FileScanOptions{})
+		files := s.GetFiles(loginp.FileScanOptions{}).Files
 		assert.Len(t, files, 1, "empty.log must be excluded")
 		assert.Contains(t, files, nonEmpty, "nonempty.log should be included")
 		assert.NotContains(t, buff.String(), "GetFiles") // every line has a source prefix
@@ -1457,7 +1456,7 @@ scanner:
 		s, err := newFileScanner(inMemoryLog, []string{filepath.Join(dir, "*.log")}, cfg, CompressionNone)
 		require.NoError(t, err)
 
-		files, _, _ := s.GetFiles(loginp.FileScanOptions{})
+		files := s.GetFiles(loginp.FileScanOptions{}).Files
 		assert.Len(t, files, 1, "empty_link.log must be excluded")
 		assert.Contains(t, files, nonEmptyLink, "nonempty_link.log should be included")
 		assert.NotContains(t, buff.String(), "GetFiles") // every line has a source prefix
@@ -1499,13 +1498,13 @@ scanner:
 `
 
 	scanner := createScannerWithConfig(t, logp.NewNopLogger(), paths, cfgStr, CompressionNone)
-	files, scanMetrics, _ := scanner.GetFiles(loginp.FileScanOptions{
+	result := scanner.GetFiles(loginp.FileScanOptions{
 		CurrentTime: now,
 		IgnoreOlder: time.Hour,
 	})
-	require.Contains(t, files, keepLog, "keep log must be ingestible")
-	require.Contains(t, files, oldLog, "old log must still be returned")
-	require.Len(t, files, 2, "keep and old logs should be ingestible scan targets")
+	require.Contains(t, result.Files, keepLog, "keep log must be ingestible")
+	require.Contains(t, result.Files, oldLog, "old log must still be returned")
+	require.Len(t, result.Files, 2, "keep and old logs should be ingestible scan targets")
 
 	assert.Equal(t, loginp.FileScanMetrics{
 		FilesIgnored:        2,
@@ -1514,7 +1513,28 @@ scanner:
 		FilesEmpty:          1,
 		FilesUnique:         2,
 		ScanErrors:          0,
-	}, scanMetrics, "unexpected scan metrics")
+	}, result.Metrics, "unexpected scan metrics")
+}
+
+func TestFileScannerCountsOverlappingPatternsOnce(t *testing.T) {
+	dir := t.TempDir()
+	a := filepath.Join(dir, "a.log")
+	b := filepath.Join(dir, "b.log")
+	require.NoError(t, os.WriteFile(a, []byte("a"), 0o640))
+	require.NoError(t, os.WriteFile(b, []byte("b"), 0o640))
+
+	s, err := newFileScanner(
+		logptest.NewTestingLogger(t, ""),
+		[]string{filepath.Join(dir, "*.log"), a},
+		fileScannerConfig{Fingerprint: fingerprintConfig{Enabled: false}},
+		CompressionNone,
+	)
+	require.NoError(t, err)
+
+	result := s.GetFiles(loginp.FileScanOptions{})
+	assert.Len(t, result.Files, 2)
+	assert.EqualValues(t, 2, result.Metrics.FilesMatched, "files_matched must count unique candidate paths")
+	assert.EqualValues(t, 0, result.Metrics.FilesNoIngestTarget, "an overlapping pattern is not a rejected target")
 }
 
 func TestFileWatcherScanMetricsCountsIgnoredFiles(t *testing.T) {
@@ -1552,79 +1572,8 @@ scanner:
 	assert.Equal(t, baseline.FilesEmpty, metrics.FilesEmpty.Get(), "files_empty")
 }
 
-// getFilesViaGlob is the verbatim pre-#48686 filepath.Glob based GetFiles. It
-// is the oracle the single-pass walker must match.
-//
-// It deliberately calls the same production getIngestTarget/toFileDescriptor
-// helpers the walker uses, so the parity comparison isolates exactly the changed
-// logic — path enumeration, matching and dedup — and not the per-file ingest-target
-// resolution the two share. A behavior change in those shared helpers moves both
-// sides together and would not be caught here; that is intended, they are covered
-// by their own tests (e.g. TestGetIngestTarget).
-func getFilesViaGlob(s *fileScanner) map[string]loginp.FileDescriptor {
-	fdByName := map[string]loginp.FileDescriptor{}
-	// used to determine if a symlink resolves in a already known target
-	uniqueIDs := map[string]string{}
-	// used to filter out duplicate matches
-	uniqueFiles := map[string]struct{}{}
-
-	for _, path := range s.paths {
-		matches, err := filepath.Glob(path)
-		if err != nil {
-			s.log.Errorf("glob(%s) failed: %v", path, err)
-			continue
-		}
-
-		for _, filename := range matches {
-			// in case multiple globs match on the same file we filter out duplicates
-			if _, knownFile := uniqueFiles[filename]; knownFile {
-				continue
-			}
-			uniqueFiles[filename] = struct{}{}
-
-			it, err := s.getIngestTarget(filename)
-			if err != nil {
-				if !errors.Is(err, errFileEmpty) {
-					s.log.Debugf("cannot create an ingest target for file %q: %s", filename, err)
-				}
-				continue
-			}
-
-			fd, err := s.toFileDescriptor(&it)
-			if errors.Is(err, errFileTooSmall) {
-				if s.smallFilesWarned.CompareAndSwap(false, true) {
-					s.log.Warnf("ingestion from some files will be delayed, files need to be at "+
-						"least %d in size for ingestion to start. To change this "+
-						"behaviour set 'prospector.scanner.fingerprint.length' and "+
-						"'prospector.scanner.fingerprint.offset'. "+
-						"Enable debug logging to see all file names of delayed files.",
-						s.cfg.Fingerprint.Offset+s.cfg.Fingerprint.Length)
-				}
-				s.log.Debugf("cannot start ingesting from file %q: %s", filename, err)
-				continue
-			}
-			if err != nil {
-				s.log.Warnf("cannot create a file descriptor for an ingest target %q: %s", filename, err)
-				continue
-			}
-
-			fileID := fd.FileID()
-			if knownFilename, exists := uniqueIDs[fileID]; exists {
-				s.log.Warnf("%q points to an already known ingest target %q [%s==%s]. Skipping", fd.Filename, knownFilename, fileID, fileID)
-				continue
-			}
-			uniqueIDs[fileID] = fd.Filename
-			fdByName[filename] = fd
-		}
-	}
-
-	return fdByName
-}
-
-// TestScannerWalkMatchesGlob asserts the single-pass walker returns exactly the
-// same files as the previous filepath.Glob implementation across a range of trees,
-// including the symlink-following and depth-cap behaviour that must be preserved.
-func TestScannerWalkMatchesGlob(t *testing.T) {
+// TestScannerWalk verifies matching-set semantics across representative trees.
+func TestScannerWalk(t *testing.T) {
 	mkfile := func(t *testing.T, path string) {
 		t.Helper()
 		require.NoError(t, os.MkdirAll(filepath.Dir(path), 0o770))
@@ -1646,6 +1595,11 @@ func TestScannerWalkMatchesGlob(t *testing.T) {
 				return []string{filepath.Join(dir, "*.json")},
 					fileScannerConfig{Fingerprint: noFingerprint}
 			},
+			extra: func(t *testing.T, dir string, files map[string]loginp.FileDescriptor) {
+				assert.Len(t, files, 2)
+				assert.Contains(t, files, filepath.Join(dir, "a.json"))
+				assert.Contains(t, files, filepath.Join(dir, "b.json"))
+			},
 		},
 		{
 			name: "recursive depths incl. cap boundary",
@@ -1658,6 +1612,7 @@ func TestScannerWalkMatchesGlob(t *testing.T) {
 					fileScannerConfig{RecursiveGlob: true, Fingerprint: noFingerprint}
 			},
 			extra: func(t *testing.T, dir string, files map[string]loginp.FileDescriptor) {
+				assert.Len(t, files, 3)
 				assert.Contains(t, files, filepath.Join(dir, "a/a/a/a/a/a/a/a/d8.json"),
 					"file at the depth cap must be included")
 				assert.NotContains(t, files, filepath.Join(dir, "a/a/a/a/a/a/a/a/a/deep.json"),
@@ -1676,6 +1631,10 @@ func TestScannerWalkMatchesGlob(t *testing.T) {
 						Fingerprint:   noFingerprint,
 					}
 			},
+			extra: func(t *testing.T, dir string, files map[string]loginp.FileDescriptor) {
+				assert.Len(t, files, 1)
+				assert.Contains(t, files, filepath.Join(dir, "keep.json"))
+			},
 		},
 		{
 			name: "include_files",
@@ -1687,6 +1646,10 @@ func TestScannerWalkMatchesGlob(t *testing.T) {
 						IncludedFiles: []match.Matcher{match.MustCompile("wanted")},
 						Fingerprint:   noFingerprint,
 					}
+			},
+			extra: func(t *testing.T, dir string, files map[string]loginp.FileDescriptor) {
+				assert.Len(t, files, 1)
+				assert.Contains(t, files, filepath.Join(dir, "wanted.json"))
 			},
 		},
 		{
@@ -1700,6 +1663,7 @@ func TestScannerWalkMatchesGlob(t *testing.T) {
 					fileScannerConfig{RecursiveGlob: true, Fingerprint: noFingerprint}
 			},
 			extra: func(t *testing.T, dir string, files map[string]loginp.FileDescriptor) {
+				assert.Len(t, files, 2)
 				assert.Contains(t, files, filepath.Join(dir, "link", "x.json"),
 					"file reachable only via a symlinked dir must be found")
 			},
@@ -1712,6 +1676,10 @@ func TestScannerWalkMatchesGlob(t *testing.T) {
 				return []string{filepath.Join(dir, "**", "*.json")},
 					fileScannerConfig{RecursiveGlob: true, Fingerprint: noFingerprint}
 			},
+			extra: func(t *testing.T, dir string, files map[string]loginp.FileDescriptor) {
+				assert.Len(t, files, 1)
+				assert.Contains(t, files, filepath.Join(dir, "a.json"))
+			},
 		},
 		{
 			name: "recursive_glob disabled",
@@ -1721,12 +1689,19 @@ func TestScannerWalkMatchesGlob(t *testing.T) {
 				return []string{filepath.Join(dir, "**", "*.json")},
 					fileScannerConfig{RecursiveGlob: false, Fingerprint: noFingerprint}
 			},
+			extra: func(t *testing.T, dir string, files map[string]loginp.FileDescriptor) {
+				assert.Len(t, files, 1)
+				assert.Contains(t, files, filepath.Join(dir, "sub", "b.json"))
+			},
 		},
 		{
 			name: "missing base directory",
 			setup: func(t *testing.T, dir string) ([]string, fileScannerConfig) {
 				return []string{filepath.Join(dir, "does-not-exist", "**", "*.json")},
 					fileScannerConfig{RecursiveGlob: true, Fingerprint: noFingerprint}
+			},
+			extra: func(t *testing.T, _ string, files map[string]loginp.FileDescriptor) {
+				assert.Empty(t, files)
 			},
 		},
 		{
@@ -1745,14 +1720,14 @@ func TestScannerWalkMatchesGlob(t *testing.T) {
 						Fingerprint:   noFingerprint,
 					}
 			},
+			extra: func(t *testing.T, dir string, files map[string]loginp.FileDescriptor) {
+				assert.Len(t, files, 2)
+				assert.Contains(t, files, filepath.Join(dir, "a", "doc-1.json"))
+				assert.Contains(t, files, filepath.Join(dir, "a", "b", "doc-2.ndjson"))
+			},
 		},
 		{
-			// The same file is reachable at depth 3 (real path) and depth 2
-			// (through the symlink, in a lexically earlier sibling). Both the old
-			// glob and the new walker must keep the shallower path so the "path"
-			// file identity is stable. This case diverges under a naive
-			// depth-first "first wins" dedup.
-			name: "symlink alias keeps shallowest path",
+			name: "symlink alias keeps canonical path",
 			setup: func(t *testing.T, dir string) ([]string, fileScannerConfig) {
 				mkfile(t, filepath.Join(dir, "areal/deep/x.json"))
 				require.NoError(t, os.Symlink(
@@ -1762,19 +1737,14 @@ func TestScannerWalkMatchesGlob(t *testing.T) {
 			},
 			extra: func(t *testing.T, dir string, files map[string]loginp.FileDescriptor) {
 				assert.Len(t, files, 1)
-				assert.Contains(t, files, filepath.Join(dir, "zlink", "x.json"),
-					"the shallower aliased path must be kept")
-				assert.NotContains(t, files, filepath.Join(dir, "areal", "deep", "x.json"),
-					"the deeper aliased path must be deduplicated away")
+				assert.Contains(t, files, filepath.Join(dir, "areal", "deep", "x.json"),
+					"the lexicographically first aliased path must be kept")
+				assert.NotContains(t, files, filepath.Join(dir, "zlink", "x.json"),
+					"the later aliased path must be deduplicated away")
 			},
 		},
 		{
-			// The same file is reachable through two configured globs with
-			// different bases: directly under "a" (depth 1) and through a symlink
-			// under "b" (depth 2). "b" is configured first, so its (deeper) path
-			// must win — matching main's config-path-order tie-break, not a
-			// shallowest-path heuristic.
-			name: "config-path order wins across bases",
+			name: "canonical path wins across bases",
 			setup: func(t *testing.T, dir string) ([]string, fileScannerConfig) {
 				mkfile(t, filepath.Join(dir, "a", "x.log"))
 				require.NoError(t, os.MkdirAll(filepath.Join(dir, "b"), 0o770))
@@ -1788,19 +1758,13 @@ func TestScannerWalkMatchesGlob(t *testing.T) {
 			},
 			extra: func(t *testing.T, dir string, files map[string]loginp.FileDescriptor) {
 				assert.Len(t, files, 1)
-				assert.Contains(t, files, filepath.Join(dir, "b", "link", "x.log"),
-					"the path under the first configured glob must win")
-				assert.NotContains(t, files, filepath.Join(dir, "a", "x.log"))
+				assert.Contains(t, files, filepath.Join(dir, "a", "x.log"),
+					"configured pattern order must not override canonical path order")
+				assert.NotContains(t, files, filepath.Join(dir, "b", "link", "x.log"))
 			},
 		},
 		{
-			// Two sibling dirs where one name is a byte-prefix of the other and
-			// the next byte sorts before '/' ('-' is 0x2d, '/' is 0x2f): full-path
-			// byte order puts d-x/a.log first, but filepath.Glob sorts per
-			// directory, so main kept d/z.log. The files share a fingerprint, so
-			// they collide on FileID and the tie-break (same pattern, equal scan
-			// order index) decides which path survives.
-			name: "same fingerprint tie-break keeps glob order",
+			name: "same fingerprint keeps canonical path",
 			setup: func(t *testing.T, dir string) ([]string, fileScannerConfig) {
 				content := []byte(strings.Repeat("same-", 20)) // identical fingerprints
 				for _, p := range []string{
@@ -1815,15 +1779,11 @@ func TestScannerWalkMatchesGlob(t *testing.T) {
 			},
 			extra: func(t *testing.T, dir string, files map[string]loginp.FileDescriptor) {
 				assert.Len(t, files, 1, "same-fingerprint files must dedup to one")
-				assert.Contains(t, files, filepath.Join(dir, "d", "z.log"),
-					"the tie-break must keep the path filepath.Glob returned first (per-directory sort)")
+				assert.Contains(t, files, filepath.Join(dir, "d-x", "a.log"),
+					"the lexicographically first path must win")
 			},
 		},
 		{
-			// filepath.Glob returns any entry whose name matches, including a
-			// symlink resolving to a directory; with symlinks enabled and
-			// fingerprinting off main kept it in the result map. The walker must
-			// yield it too and leave type filtering to getIngestTarget.
 			name: "symlink to directory at leaf",
 			setup: func(t *testing.T, dir string) ([]string, fileScannerConfig) {
 				mkfile(t, filepath.Join(dir, "f.log"))
@@ -1834,15 +1794,9 @@ func TestScannerWalkMatchesGlob(t *testing.T) {
 					fileScannerConfig{Symlinks: true, Fingerprint: noFingerprint}
 			},
 			extra: func(t *testing.T, dir string, files map[string]loginp.FileDescriptor) {
-				// The walker matching the filepath.Glob oracle is asserted above and
-				// holds on every OS. Whether the symlink-to-directory survives
-				// getIngestTarget is platform specific: it stats the resolved target
-				// and drops it when Size()==0, which a directory reports on Windows
-				// but not on Unix. So on Unix the symlink is kept like a file; on
-				// Windows it is filtered out like the plain directory it points to.
 				if runtime.GOOS != "windows" {
 					assert.Contains(t, files, filepath.Join(dir, "linkdir"),
-						"a symlink resolving to a directory is matched like a file by filepath.Glob")
+						"a symlink resolving to a directory is matched as a leaf")
 				}
 				assert.NotContains(t, files, filepath.Join(dir, "targetdir"),
 					"a plain directory is rejected by getIngestTarget")
@@ -1875,8 +1829,7 @@ func TestScannerWalkMatchesGlob(t *testing.T) {
 			s, err := newFileScanner(logptest.NewTestingLogger(t, ""), paths, cfg, CompressionNone)
 			require.NoError(t, err)
 
-			got, _, _ := s.GetFiles(loginp.FileScanOptions{})
-			requireEqualFiles(t, getFilesViaGlob(s), got)
+			got := s.GetFiles(loginp.FileScanOptions{}).Files
 
 			if tc.extra != nil {
 				tc.extra(t, dir, got)
@@ -1885,32 +1838,28 @@ func TestScannerWalkMatchesGlob(t *testing.T) {
 	}
 }
 
-// TestScannerStablePathWithDuplicateFingerprint verifies that when two files share
-// a fingerprint (so they are deduplicated by FileID), GetFiles keeps the shallowest
-// path, so the "path" file identity stays stable and the file is not re-ingested.
-// See https://github.com/elastic/beats/issues/48686.
-func TestScannerStablePathWithDuplicateFingerprint(t *testing.T) {
+func TestScannerCanonicalPathWithDuplicateFingerprint(t *testing.T) {
 	dir := t.TempDir()
-	content := []byte(strings.Repeat("identical-header-", 8)) // same fingerprint for both
-	for _, p := range []string{
-		filepath.Join(dir, "deep", "sub", "b.json"), // depth 3
-		filepath.Join(dir, "a.json"),                // depth 1
-	} {
-		require.NoError(t, os.MkdirAll(filepath.Dir(p), 0o770))
+	content := []byte(strings.Repeat("identical-header-", 8))
+	first := filepath.Join(dir, "a.json")
+	last := filepath.Join(dir, "z.json")
+	for _, p := range []string{first, last} {
 		require.NoError(t, os.WriteFile(p, content, 0o660))
 	}
 
 	cfg := fileScannerConfig{
-		RecursiveGlob: true,
-		Fingerprint:   fingerprintConfig{Enabled: true, Length: 64},
+		Fingerprint: fingerprintConfig{Enabled: true, Length: 64},
 	}
-	s, err := newFileScanner(logptest.NewTestingLogger(t, ""),
-		[]string{filepath.Join(dir, "**", "*.json")}, cfg, CompressionNone)
-	require.NoError(t, err)
+	for _, paths := range [][]string{{last, first}, {first, last}} {
+		s, err := newFileScanner(logptest.NewTestingLogger(t, ""), paths, cfg, CompressionNone)
+		require.NoError(t, err)
 
-	files, _, _ := s.GetFiles(loginp.FileScanOptions{})
-	require.Len(t, files, 1, "files with the same fingerprint must dedup to one")
-	assert.Contains(t, files, filepath.Join(dir, "a.json"), "must keep the shallowest path")
+		for range 2 {
+			files := s.GetFiles(loginp.FileScanOptions{}).Files
+			require.Len(t, files, 1, "files with the same fingerprint must dedup to one")
+			assert.Contains(t, files, first, "canonical path must not depend on pattern or scan order")
+		}
+	}
 }
 
 func TestGlobRoot(t *testing.T) {
@@ -1970,31 +1919,6 @@ func TestGlobRoot(t *testing.T) {
 	}
 }
 
-func TestDepthBelow(t *testing.T) {
-	base := t.TempDir()
-
-	tests := []struct {
-		name    string
-		root    string
-		pattern string
-		want    int
-	}{
-		{"pattern equals root", base, base, 0},
-		{"one level", base, filepath.Join(base, "a.json"), 1},
-		{"two levels", base, filepath.Join(base, "x", "y.json"), 2},
-		{"three levels", base, filepath.Join(base, "x", "y", "z.json"), 3},
-		{"wildcards count as segments", base, filepath.Join(base, "*", "*.json"), 2},
-		{"nested root", filepath.Join(base, "a"), filepath.Join(base, "a", "b", "c.log"), 2},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			assert.Equal(t, tc.want, depthBelow(tc.root, tc.pattern),
-				"depthBelow(%q, %q)", tc.root, tc.pattern)
-		})
-	}
-}
-
 func TestBuildWalkGroups(t *testing.T) {
 	base := t.TempDir()
 	newScanner := func(paths ...string) *fileScanner {
@@ -2022,8 +1946,11 @@ func TestBuildWalkGroups(t *testing.T) {
 		require.Contains(t, s.walkGroups, root)
 		g := s.walkGroups[root]
 		assert.Equal(t, root, g.root)
-		assert.Equal(t, 3, g.maxDepth)
-		assert.Equal(t, map[int][]string{1: {p1}, 2: {p2}, 3: {p3}}, g.byDepth)
+		assert.Equal(t, []walkPattern{
+			{pattern: p1, comps: patternComponents(root, p1)},
+			{pattern: p2, comps: patternComponents(root, p2)},
+			{pattern: p3, comps: patternComponents(root, p3)},
+		}, g.patterns)
 	})
 
 	t.Run("patterns sharing a root and depth are grouped together", func(t *testing.T) {
@@ -2035,8 +1962,10 @@ func TestBuildWalkGroups(t *testing.T) {
 
 		require.Contains(t, s.walkGroups, root)
 		g := s.walkGroups[root]
-		assert.Equal(t, 1, g.maxDepth)
-		assert.Equal(t, map[int][]string{1: {pj, pn}}, g.byDepth)
+		assert.Equal(t, []walkPattern{
+			{pattern: pj, comps: patternComponents(root, pj)},
+			{pattern: pn, comps: patternComponents(root, pn)},
+		}, g.patterns)
 	})
 
 	t.Run("distinct roots produce distinct groups", func(t *testing.T) {
@@ -2049,8 +1978,8 @@ func TestBuildWalkGroups(t *testing.T) {
 		assert.Len(t, s.walkGroups, 2)
 		require.Contains(t, s.walkGroups, ra)
 		require.Contains(t, s.walkGroups, rb)
-		assert.Equal(t, map[int][]string{1: {pa}}, s.walkGroups[ra].byDepth)
-		assert.Equal(t, map[int][]string{1: {pb}}, s.walkGroups[rb].byDepth)
+		assert.Equal(t, []walkPattern{{pattern: pa, comps: patternComponents(ra, pa)}}, s.walkGroups[ra].patterns)
+		assert.Equal(t, []walkPattern{{pattern: pb, comps: patternComponents(rb, pb)}}, s.walkGroups[rb].patterns)
 	})
 
 	t.Run("mixes literals and globs", func(t *testing.T) {
@@ -2062,7 +1991,7 @@ func TestBuildWalkGroups(t *testing.T) {
 
 		assert.Equal(t, []string{lit}, s.literals)
 		require.Contains(t, s.walkGroups, root)
-		assert.Equal(t, map[int][]string{1: {glob}}, s.walkGroups[root].byDepth)
+		assert.Equal(t, []walkPattern{{pattern: glob, comps: patternComponents(root, glob)}}, s.walkGroups[root].patterns)
 	})
 
 	t.Run("invalid pattern is skipped", func(t *testing.T) {
@@ -2077,6 +2006,16 @@ func TestBuildWalkGroups(t *testing.T) {
 
 func TestWalk(t *testing.T) {
 	logger := logptest.NewTestingLogger(t, "")
+	group := func(root string, patterns ...string) *walkGroup {
+		compiled := make([]walkPattern, 0, len(patterns))
+		for _, pattern := range patterns {
+			compiled = append(compiled, walkPattern{
+				pattern: pattern,
+				comps:   patternComponents(root, pattern),
+			})
+		}
+		return &walkGroup{root: root, patterns: compiled}
+	}
 	mkfile := func(t *testing.T, path string) {
 		t.Helper()
 		require.NoError(t, os.MkdirAll(filepath.Dir(path), 0o770))
@@ -2085,7 +2024,7 @@ func TestWalk(t *testing.T) {
 	collect := func(g *walkGroup) []string {
 		s := &fileScanner{log: logger}
 		var got []string
-		s.walk(g, func(f string, _ int) { got = append(got, f) }, func(string) {})
+		s.walk(g, func(f string) { got = append(got, f) }, func(string) {})
 		return got
 	}
 
@@ -2095,14 +2034,11 @@ func TestWalk(t *testing.T) {
 		mkfile(t, filepath.Join(base, "sub", "b.log"))         // depth 2
 		mkfile(t, filepath.Join(base, "sub", "deep", "c.log")) // depth 3: beyond maxDepth
 
-		got := collect(&walkGroup{
-			root:     base,
-			maxDepth: 2,
-			byDepth: map[int][]string{
-				1: {filepath.Join(base, "*.log")},
-				2: {filepath.Join(base, "*", "*.log")},
-			},
-		})
+		got := collect(group(
+			base,
+			filepath.Join(base, "*.log"),
+			filepath.Join(base, "*", "*.log"),
+		))
 		assert.ElementsMatch(t, []string{
 			filepath.Join(base, "a.log"),
 			filepath.Join(base, "sub", "b.log"),
@@ -2114,11 +2050,7 @@ func TestWalk(t *testing.T) {
 		mkfile(t, filepath.Join(base, "real", "x.log"))
 		require.NoError(t, os.Symlink(filepath.Join(base, "real"), filepath.Join(base, "link")))
 
-		got := collect(&walkGroup{
-			root:     base,
-			maxDepth: 2,
-			byDepth:  map[int][]string{2: {filepath.Join(base, "*", "*.log")}},
-		})
+		got := collect(group(base, filepath.Join(base, "*", "*.log")))
 		assert.ElementsMatch(t, []string{
 			filepath.Join(base, "real", "x.log"),
 			filepath.Join(base, "link", "x.log"),
@@ -2130,11 +2062,7 @@ func TestWalk(t *testing.T) {
 		mkfile(t, filepath.Join(base, "a.log"))
 		require.NoError(t, os.Symlink(filepath.Join(base, "missing"), filepath.Join(base, "broken.log")))
 
-		got := collect(&walkGroup{
-			root:     base,
-			maxDepth: 1,
-			byDepth:  map[int][]string{1: {filepath.Join(base, "*.log")}},
-		})
+		got := collect(group(base, filepath.Join(base, "*.log")))
 		// filepath.Glob does not stat entries at the last pattern component, so a
 		// broken symlink is returned and later rejected by getIngestTarget.
 		assert.ElementsMatch(t, []string{
@@ -2149,11 +2077,7 @@ func TestWalk(t *testing.T) {
 		require.NoError(t, os.Mkdir(filepath.Join(base, "targetdir"), 0o770))
 		require.NoError(t, os.Symlink(filepath.Join(base, "targetdir"), filepath.Join(base, "linkdir")))
 
-		got := collect(&walkGroup{
-			root:     base,
-			maxDepth: 1,
-			byDepth:  map[int][]string{1: {filepath.Join(base, "*")}},
-		})
+		got := collect(group(base, filepath.Join(base, "*")))
 		assert.ElementsMatch(t, []string{
 			filepath.Join(base, "f.log"),
 			filepath.Join(base, "linkdir"),
@@ -2172,11 +2096,8 @@ func TestWalk(t *testing.T) {
 		// "app[" is a malformed pattern (unclosed character class) that
 		// buildWalkGroups cannot detect upfront: matching it against "" fails on
 		// the literal prefix before the parser reaches the bad token.
-		sc.walk(&walkGroup{
-			root:     base,
-			maxDepth: 2,
-			byDepth:  map[int][]string{2: {filepath.Join(base, "app[", "*.log")}},
-		}, func(f string, _ int) { got = append(got, f) }, func(string) {})
+		sc.walk(group(base, filepath.Join(base, "app[", "*.log")),
+			func(f string) { got = append(got, f) }, func(string) {})
 
 		assert.Empty(t, got, "no file can match a malformed pattern")
 		assert.Equalf(t, 1, strings.Count(buff.String(), "glob match("),
@@ -2189,11 +2110,7 @@ func TestWalk(t *testing.T) {
 		mkfile(t, filepath.Join(base, "x", "other", "g.log"))
 		mkfile(t, filepath.Join(base, "y", "app", "h.log"))
 
-		got := collect(&walkGroup{
-			root:     base,
-			maxDepth: 3,
-			byDepth:  map[int][]string{3: {filepath.Join(base, "*", "app", "*.log")}},
-		})
+		got := collect(group(base, filepath.Join(base, "*", "app", "*.log")))
 		// Only files under the literal "app" component can match; subtrees such
 		// as x/other must not contribute matches (and are not descended into).
 		assert.ElementsMatch(t, []string{
@@ -2204,11 +2121,8 @@ func TestWalk(t *testing.T) {
 
 	t.Run("missing root yields nothing", func(t *testing.T) {
 		base := t.TempDir()
-		got := collect(&walkGroup{
-			root:     filepath.Join(base, "does-not-exist"),
-			maxDepth: 1,
-			byDepth:  map[int][]string{1: {filepath.Join(base, "does-not-exist", "*.log")}},
-		})
+		root := filepath.Join(base, "does-not-exist")
+		got := collect(group(root, filepath.Join(root, "*.log")))
 		assert.Empty(t, got)
 	})
 }
@@ -2227,10 +2141,10 @@ func TestFileScannerDoesNotReportNotDirectoryAsUnobservable(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	files, metrics, unobservable := s.GetFiles(loginp.FileScanOptions{})
-	assert.Empty(t, files, "a file used as a glob directory cannot contain matches")
-	assert.Empty(t, unobservable, "ENOTDIR is a real disappearance signal, not a transient scan failure")
-	assert.Equal(t, int64(0), metrics.ScanErrors, "ENOTDIR must not increment scan_errors")
+	result := s.GetFiles(loginp.FileScanOptions{})
+	assert.Empty(t, result.Files, "a file used as a glob directory cannot contain matches")
+	assert.Empty(t, result.Unobservable, "ENOTDIR is a real disappearance signal, not a transient scan failure")
+	assert.Equal(t, int64(0), result.Metrics.ScanErrors, "ENOTDIR must not increment scan_errors")
 }
 
 func TestFileWatcherHarvesterMetrics(t *testing.T) {
@@ -2382,13 +2296,17 @@ type scanResult struct {
 	unobservable []string
 }
 
-func (q *queuedScanner) GetFiles(loginp.FileScanOptions) (map[string]loginp.FileDescriptor, loginp.FileScanMetrics, []string) {
+func (q *queuedScanner) GetFiles(loginp.FileScanOptions) loginp.FileScanResult {
 	if q.next >= len(q.scans) {
-		return map[string]loginp.FileDescriptor{}, loginp.FileScanMetrics{}, nil
+		return loginp.FileScanResult{Files: map[string]loginp.FileDescriptor{}}
 	}
 	r := q.scans[q.next]
 	q.next++
-	return r.files, loginp.FileScanMetrics{ScanErrors: int64(len(r.unobservable))}, r.unobservable
+	return loginp.FileScanResult{
+		Files:        r.files,
+		Metrics:      loginp.FileScanMetrics{ScanErrors: int64(len(r.unobservable))},
+		Unobservable: r.unobservable,
+	}
 }
 
 func newStubWatcher(scanner loginp.FSScanner) *fileWatcher {
@@ -2644,9 +2562,9 @@ type testFileScanner struct {
 	files map[string]loginp.FileDescriptor
 }
 
-// GetFiles returns s.files and empty metrics.
-func (s *testFileScanner) GetFiles(loginp.FileScanOptions) (map[string]loginp.FileDescriptor, loginp.FileScanMetrics, []string) {
-	return s.files, loginp.FileScanMetrics{}, nil
+// GetFiles returns s.files.
+func (s *testFileScanner) GetFiles(loginp.FileScanOptions) loginp.FileScanResult {
+	return loginp.FileScanResult{Files: s.files}
 }
 
 const benchmarkFileCount = 1000
@@ -2686,7 +2604,7 @@ func BenchmarkGetFiles(b *testing.B) {
 	require.NoError(b, err)
 
 	for i := 0; i < b.N; i++ {
-		files, _, _ := s.GetFiles(loginp.FileScanOptions{})
+		files := s.GetFiles(loginp.FileScanOptions{}).Files
 		require.Len(b, files, benchmarkFileCount)
 	}
 }
@@ -2705,7 +2623,7 @@ func BenchmarkGetFilesWithFingerprint(b *testing.B) {
 	require.NoError(b, err)
 
 	for i := 0; i < b.N; i++ {
-		files, _, _ := s.GetFiles(loginp.FileScanOptions{})
+		files := s.GetFiles(loginp.FileScanOptions{}).Files
 		require.Len(b, files, benchmarkFileCount)
 	}
 }
@@ -2761,7 +2679,7 @@ func BenchmarkGetFilesWithFingerprintGrowing(b *testing.B) {
 
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				files, _, _ := s.GetFiles(loginp.FileScanOptions{})
+				files := s.GetFiles(loginp.FileScanOptions{}).Files
 				require.Len(b, files, wantLen)
 			}
 		})
@@ -3166,7 +3084,7 @@ func TestGetFiles_GrowingRawSuppression(t *testing.T) {
 			filename, []byte(strings.Repeat("abcd", n/4+1)[:n]), 0o644))
 	}
 	scan := func() loginp.FingerprintID {
-		files, _, _ := s.GetFiles(loginp.FileScanOptions{})
+		files := s.GetFiles(loginp.FileScanOptions{}).Files
 		require.Contains(t, files, filename, "file must be scanned")
 		fp := files[filename].Fingerprint
 		advanceCompletedFingerprints(s, files)
@@ -3238,7 +3156,7 @@ func TestGetFiles_DuplicateFingerprint(t *testing.T) {
 	expectedRawHex := hex.EncodeToString(content[:length])
 
 	scan := func() map[string]loginp.FileDescriptor {
-		files, _, _ := s.GetFiles(loginp.FileScanOptions{})
+		files := s.GetFiles(loginp.FileScanOptions{}).Files
 		advanceCompletedFingerprints(s, files)
 		return files
 	}
@@ -3286,12 +3204,12 @@ func TestGetFiles_DuplicateFingerprintAllocBudget(t *testing.T) {
 		s, err := newFileScanner(logp.NewNopLogger(), glob, cfg, CompressionNone)
 		require.NoError(t, err, "could not create file scanner")
 
-		files, _, _ := s.GetFiles(loginp.FileScanOptions{})
+		files := s.GetFiles(loginp.FileScanOptions{}).Files
 		require.Len(t, files, 1, "duplicates must dedup to a single winner")
 
 		// completedFingerprints is never advanced, so the winner re-encodes on every run.
 		return testing.AllocsPerRun(10, func() {
-			_, _, _ = s.GetFiles(loginp.FileScanOptions{})
+			_ = s.GetFiles(loginp.FileScanOptions{})
 		})
 	}
 

@@ -22,7 +22,7 @@ description: >
   removed, so once file descriptors freed up the files were rediscovered and
   re-ingested from the beginning, duplicating data. The scanner now distinguishes
   "could not observe this path" from "this path is gone": removal detection is
-  postponed for files under paths it could not read, so their offsets are 
+  postponed for files under paths it could not read, so their offsets are
   preserved and they resume instead of being re-ingested. A new scan_errors
   metric reports how many paths a scan could not observe.
 

@@ -251,22 +251,20 @@ type FileScanOptions struct {
 	IgnoreInactiveSince time.Time
 }
 
+// FileScanResult contains the files and metrics produced by one scanner pass.
+// Unobservable contains path prefixes that could not be inspected because of a
+// resource or permission error. Callers performing deletion detection must
+// retain previously seen files under those prefixes.
+type FileScanResult struct {
+	Files        map[string]FileDescriptor
+	Metrics      FileScanMetrics
+	Unobservable []string
+}
+
 // FSScanner retrieves a list of files from the file system.
 type FSScanner interface {
-	// GetFiles returns the list of monitored files.
-	//
-	// The keys of the map are the paths to the files and the values are the file
-	// descriptors that contain all necessary information about the file.
-	//
-	// The third return value is the list of "unobservable" path prefixes: paths
-	// (a directory covers its whole subtree, a file covers itself) the scan could
-	// not observe this pass because of a resource or permission error such as
-	// file-descriptor exhaustion — as opposed to a path being genuinely gone. It
-	// is nil on a healthy scan. Callers doing deletion detection must not treat a
-	// previously seen path under one of these prefixes as removed, otherwise a
-	// transient failure to read a directory would delete registry state and cause
-	// the files to be re-ingested once the resource frees up.
-	GetFiles(FileScanOptions) (map[string]FileDescriptor, FileScanMetrics, []string)
+	// GetFiles returns the result of one filesystem scan.
+	GetFiles(FileScanOptions) FileScanResult
 }
 
 // FSWatcher returns file events of the monitored files.

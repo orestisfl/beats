@@ -75,7 +75,7 @@ func buildBenchDirTree(tb testing.TB, root string, fanout, depth int) []string {
 		if d == 0 {
 			return
 		}
-		for i := 0; i < fanout; i++ {
+		for i := range fanout {
 			child := filepath.Join(base, fmt.Sprintf("d%d", i))
 			require.NoError(tb, os.MkdirAll(child, 0o770))
 			dirs = append(dirs, child)
@@ -92,7 +92,7 @@ func buildBenchDirTree(tb testing.TB, root string, fanout, depth int) []string {
 func buildBenchTree(tb testing.TB, root string, total int, name func(i int) string) {
 	tb.Helper()
 	dirs := buildBenchDirTree(tb, root, benchTreeFanout, benchTreeDepth)
-	for i := 0; i < total; i++ {
+	for i := range total {
 		p := filepath.Join(dirs[i%len(dirs)], name(i))
 		require.NoError(tb, os.WriteFile(p, []byte("x"), 0o660))
 	}
@@ -166,7 +166,7 @@ func BenchmarkGetFilesSelective(b *testing.B) {
 	}
 	s, err := newFileScanner(logp.NewNopLogger(), []string{filepath.Join(base, "**", "*.json")}, cfg, CompressionNone)
 	require.NoError(b, err)
-	got, _, _ := s.GetFiles(loginp.FileScanOptions{})
+	got := s.GetFiles(loginp.FileScanOptions{}).Files
 	require.Len(b, got, matched)
 
 	b.ReportAllocs()
@@ -197,7 +197,7 @@ func BenchmarkGetFilesExcludeMost(b *testing.B) {
 	}
 	s, err := newFileScanner(logp.NewNopLogger(), []string{filepath.Join(base, "**", "*.json")}, cfg, CompressionNone)
 	require.NoError(b, err)
-	got, _, _ := s.GetFiles(loginp.FileScanOptions{})
+	got := s.GetFiles(loginp.FileScanOptions{}).Files
 	require.Len(b, got, kept)
 
 	b.ReportAllocs()
@@ -232,7 +232,7 @@ func BenchmarkGetFilesManyPatterns(b *testing.B) {
 	}
 	s, err := newFileScanner(logp.NewNopLogger(), paths, cfg, CompressionNone)
 	require.NoError(b, err)
-	got, _, _ := s.GetFiles(loginp.FileScanOptions{})
+	got := s.GetFiles(loginp.FileScanOptions{}).Files
 	require.Len(b, got, total)
 
 	b.ReportAllocs()
@@ -256,10 +256,7 @@ func BenchmarkGetFilesLiteralMidComponent(b *testing.B) {
 	base := filepath.Join(b.TempDir(), "logs")
 	const topDirs, siblingDirs = 20, 5
 
-	perDir := benchTreeFileCount(b) / (topDirs * (1 + siblingDirs))
-	if perDir < 1 {
-		perDir = 1
-	}
+	perDir := max(benchTreeFileCount(b)/(topDirs*(1+siblingDirs)), 1)
 	writeN := func(tb testing.TB, dir, prefix string) {
 		require.NoError(tb, os.MkdirAll(dir, 0o770))
 		for k := 0; k < perDir; k++ {
@@ -267,10 +264,10 @@ func BenchmarkGetFilesLiteralMidComponent(b *testing.B) {
 				filepath.Join(dir, fmt.Sprintf("%s-%d.log", prefix, k)), []byte("x"), 0o660))
 		}
 	}
-	for i := 0; i < topDirs; i++ {
+	for i := range topDirs {
 		host := filepath.Join(base, fmt.Sprintf("host-%d", i))
 		writeN(b, filepath.Join(host, "app"), "f")
-		for j := 0; j < siblingDirs; j++ {
+		for j := range siblingDirs {
 			writeN(b, filepath.Join(host, fmt.Sprintf("other-%d", j)), "g")
 		}
 	}
@@ -279,7 +276,7 @@ func BenchmarkGetFilesLiteralMidComponent(b *testing.B) {
 	s, err := newFileScanner(logp.NewNopLogger(),
 		[]string{filepath.Join(base, "*", "app", "*.log")}, cfg, CompressionNone)
 	require.NoError(b, err)
-	got, _, _ := s.GetFiles(loginp.FileScanOptions{})
+	got := s.GetFiles(loginp.FileScanOptions{}).Files
 	require.Len(b, got, topDirs*perDir)
 
 	b.ReportAllocs()
@@ -315,7 +312,7 @@ func BenchmarkGetFilesMixed(b *testing.B) {
 	const excluded = 100
 	skipDir := filepath.Join(structured, "skip")
 	require.NoError(b, os.MkdirAll(skipDir, 0o770))
-	for i := 0; i < excluded; i++ {
+	for i := range excluded {
 		require.NoError(b, os.WriteFile(
 			filepath.Join(skipDir, fmt.Sprintf("drop-%d.json", i)), []byte("x"), 0o660))
 	}
@@ -324,10 +321,7 @@ func BenchmarkGetFilesMixed(b *testing.B) {
 	// hosts/*/app/*.log, the sibling dirs must be pruned.
 	hosts := filepath.Join(root, "hosts")
 	const hostCount, siblingDirs = 20, 5
-	perDir := (total - structuredFiles) / (hostCount * (1 + siblingDirs))
-	if perDir < 1 {
-		perDir = 1
-	}
+	perDir := max((total-structuredFiles)/(hostCount*(1+siblingDirs)), 1)
 	writeN := func(dir, prefix string) {
 		require.NoError(b, os.MkdirAll(dir, 0o770))
 		for k := 0; k < perDir; k++ {
@@ -335,10 +329,10 @@ func BenchmarkGetFilesMixed(b *testing.B) {
 				filepath.Join(dir, fmt.Sprintf("%s-%d.log", prefix, k)), []byte("x"), 0o660))
 		}
 	}
-	for i := 0; i < hostCount; i++ {
+	for i := range hostCount {
 		host := filepath.Join(hosts, fmt.Sprintf("host-%d", i))
 		writeN(filepath.Join(host, "app"), "f")
-		for j := 0; j < siblingDirs; j++ {
+		for j := range siblingDirs {
 			writeN(filepath.Join(host, fmt.Sprintf("other-%d", j)), "g")
 		}
 	}
@@ -356,83 +350,12 @@ func BenchmarkGetFilesMixed(b *testing.B) {
 	s, err := newFileScanner(logp.NewNopLogger(), paths, cfg, CompressionNone)
 	require.NoError(b, err)
 	matched := structuredFiles + hostCount*perDir // skip/ files excluded, sibling dirs pruned
-	got, _, _ := s.GetFiles(loginp.FileScanOptions{})
+	got := s.GetFiles(loginp.FileScanOptions{}).Files
 	require.Len(b, got, matched)
 
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		s.GetFiles(loginp.FileScanOptions{})
-	}
-}
-
-// collisionFPLen is the fingerprint window used by the identity-collision
-// benchmark: small so files stay tiny, large enough to hold a distinct header.
-const collisionFPLen = 64
-
-// buildCollisionTree creates n ".log" files in a single directory three levels
-// below root (so root/**/*.log resolves them via root/*/*/*.log and scanOrderIndex
-// has to skip the shallower expansions). round(n*ratePercent/100) of the files
-// share their fingerprint header with an earlier file, so they collapse to the
-// same FileID; the rest get distinct headers. Colliding files diverge after the
-// shared header, mirroring the growing-fingerprint case where files share a
-// header while small and split apart as they grow. Whether the shared FileID
-// comes from a completed SHA-256 (as here) or a growing raw prefix does not
-// change the collision hot path (matchedEarlier/scanOrderIndex) being measured.
-func buildCollisionTree(tb testing.TB, root string, n, ratePercent int) {
-	tb.Helper()
-	dir := filepath.Join(root, "a", "b")
-	require.NoError(tb, os.MkdirAll(dir, 0o770))
-
-	collisions := n * ratePercent / 100
-	unique := n - collisions
-	require.Positive(tb, unique, "need at least one distinct header")
-
-	for i := 0; i < n; i++ {
-		k := i
-		if i >= unique {
-			k = (i - unique) % unique // duplicate an earlier file's header
-		}
-		// A collisionFPLen-byte header (the fingerprint window) that is identical
-		// for duplicates, followed by a per-file tail so the files are genuinely
-		// distinct beyond the shared prefix.
-		header := fmt.Sprintf("%0*d", collisionFPLen, k)
-		content := header[:collisionFPLen] + fmt.Sprintf("\n-tail-%d\n", i)
-		p := filepath.Join(dir, fmt.Sprintf("f%05d.log", i))
-		require.NoError(tb, os.WriteFile(p, []byte(content), 0o660))
-	}
-}
-
-// BenchmarkGetFilesIdentityCollision measures GetFiles when many matched files
-// resolve to the same FileID — the case a reviewer flagged for the single-pass
-// scanner: every collision triggers matchedEarlier/scanOrderIndex, which the
-// previous filepath.Glob implementation handled in O(1). Uses a "**" pattern so
-// scanOrderIndex has more than one expansion to test. Counts and collision rates
-// are small on purpose (the concern is per-collision overhead, not tree size).
-func BenchmarkGetFilesIdentityCollision(b *testing.B) {
-	for _, n := range []int{100, 500, 1000} {
-		for _, ratePercent := range []int{10, 25, 50} {
-			b.Run(fmt.Sprintf("n%d/collision%d", n, ratePercent), func(b *testing.B) {
-				base := filepath.Join(b.TempDir(), "root")
-				buildCollisionTree(b, base, n, ratePercent)
-
-				cfg := fileScannerConfig{
-					RecursiveGlob: true,
-					Fingerprint:   fingerprintConfig{Enabled: true, Offset: 0, Length: collisionFPLen},
-				}
-				s, err := newFileScanner(logp.NewNopLogger(), []string{filepath.Join(base, "**", "*.log")}, cfg, CompressionNone)
-				require.NoError(b, err)
-
-				unique := n - n*ratePercent/100
-				got, _, _ := s.GetFiles(loginp.FileScanOptions{})
-				require.Len(b, got, unique, "colliding files must dedup to one per distinct FileID")
-
-				b.ReportAllocs()
-				b.ResetTimer()
-				for i := 0; i < b.N; i++ {
-					s.GetFiles(loginp.FileScanOptions{})
-				}
-			})
-		}
 	}
 }
