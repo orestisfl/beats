@@ -616,6 +616,40 @@ scanner:
 	})
 }
 
+func TestFileWatcherRenameWithSharedDirCache(t *testing.T) {
+	dir := t.TempDir()
+	oldPath := filepath.Join(dir, "app.log")
+	newPath := filepath.Join(dir, "app.log.1")
+	require.NoError(t, os.WriteFile(oldPath, []byte("hello"), 0o600), "failed to create log file")
+
+	cfg := defaultFileWatcherConfig()
+	cfg.Scanner.Fingerprint.Enabled = false
+	fw, err := newFileWatcherWithDirReader(
+		logp.NewNopLogger(),
+		[]string{filepath.Join(dir, "*.log*")},
+		cfg,
+		CompressionNone,
+		false,
+		mustPathIdentifier(false),
+		mustSourceIdentifier("test-id"),
+		newDirCache(),
+	)
+	require.NoError(t, err, "failed to create file watcher")
+	fw.events = make(chan loginp.FSEvent, 2)
+	metrics := newTestMetrics()
+
+	fw.watch(context.Background(), metrics, 0, time.Time{})
+	requireEventSignatures(t, drainPendingFSEvents(fw.events), []loginp.FSEvent{
+		{Op: loginp.OpCreate, NewPath: oldPath},
+	})
+
+	require.NoError(t, os.Rename(oldPath, newPath), "failed to rename log file")
+	fw.watch(context.Background(), metrics, 0, time.Time{})
+	requireEventSignatures(t, drainPendingFSEvents(fw.events), []loginp.FSEvent{
+		{Op: loginp.OpRename, OldPath: oldPath, NewPath: newPath},
+	})
+}
+
 func TestFileWatcherCopyTruncateWithFingerprint(t *testing.T) {
 	t.Run("copy truncate happens at once", func(t *testing.T) {
 		w, activePath, rotatedPath := newFileWatcherForCopyTruncateTests(t)

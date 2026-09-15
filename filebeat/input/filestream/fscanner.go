@@ -143,9 +143,10 @@ type fileScanner struct {
 	pathsCanOverlap bool
 
 	// dirCache is the shared process-wide directory cache; nil means read directly.
-	// dirCacheMaxAge is min(check_interval, maxDirCacheAge) and is passed per call.
-	dirCache       *dirCache
-	dirCacheMaxAge time.Duration
+	// dirCacheSequences tracks the last listing each walk root received so a
+	// scanner never reuses its own result on a subsequent scan.
+	dirCache          *dirCache
+	dirCacheSequences map[string]dirCacheSequence
 
 	// Everything below exists only to avoid per-file allocations
 
@@ -158,21 +159,22 @@ type fileScanner struct {
 }
 
 func newFileScanner(logger *logp.Logger, paths []string, config fileScannerConfig, compression string) (*fileScanner, error) {
-	return newFileScannerWithCache(logger, paths, config, compression, nil, 0)
+	return newFileScannerWithCache(logger, paths, config, compression, nil)
 }
 
-// newFileScannerWithCache is like newFileScanner but accepts a shared dirCache
-// and the per-call maxAge (typically min(check_interval, maxDirCacheAge)).
+// newFileScannerWithCache is like newFileScanner but accepts a shared dirCache.
 // dc=nil means directory reads go directly to the OS without caching.
-func newFileScannerWithCache(logger *logp.Logger, paths []string, config fileScannerConfig, compression string, dc *dirCache, maxAge time.Duration) (*fileScanner, error) {
+func newFileScannerWithCache(logger *logp.Logger, paths []string, config fileScannerConfig, compression string, dc *dirCache) (*fileScanner, error) {
 	s := fileScanner{
-		paths:          paths,
-		cfg:            config,
-		log:            logger.Named("scanner"),
-		hasher:         sha256.New(),
-		compression:    compression,
-		dirCache:       dc,
-		dirCacheMaxAge: maxAge,
+		paths:       paths,
+		cfg:         config,
+		log:         logger.Named("scanner"),
+		hasher:      sha256.New(),
+		compression: compression,
+		dirCache:    dc,
+	}
+	if dc != nil {
+		s.dirCacheSequences = make(map[string]dirCacheSequence)
 	}
 
 	if s.cfg.Fingerprint.Enabled {
@@ -515,17 +517,25 @@ type walkPattern struct {
 }
 
 func (s *fileScanner) readNames(dir string, shared bool) ([]string, error) {
-	if s.dirCache != nil {
-		return s.dirCache.readDirNames(dir, s.dirCacheMaxAge, shared)
+	if s.dirCache == nil || !shared {
+		return osDirNames(dir)
 	}
-	return osDirNames(dir)
+	names, sequence, err := s.dirCache.readDirNames(dir, s.dirCacheSequences[dir])
+	if err == nil {
+		s.dirCacheSequences[dir] = sequence
+	}
+	return names, err
 }
 
 func (s *fileScanner) readEntries(dir string, shared bool) ([]os.DirEntry, error) {
-	if s.dirCache != nil {
-		return s.dirCache.readDirEntries(dir, s.dirCacheMaxAge, shared)
+	if s.dirCache == nil || !shared {
+		return os.ReadDir(dir)
 	}
-	return os.ReadDir(dir)
+	entries, sequence, err := s.dirCache.readDirEntries(dir, s.dirCacheSequences[dir])
+	if err == nil {
+		s.dirCacheSequences[dir] = sequence
+	}
+	return entries, err
 }
 
 // walk traverses g.root once and invokes process for every entry matching one of

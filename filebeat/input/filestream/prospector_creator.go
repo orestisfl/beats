@@ -115,7 +115,6 @@ func newProspector(
 		identifier,
 		srci,
 		dc,
-		min(config.FileWatcher.Interval, maxDirCacheAge),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("error while creating filewatcher %w", err)

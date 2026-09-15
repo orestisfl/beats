@@ -27,14 +27,19 @@ import (
 
 const maxDirCacheAge = time.Second
 
+// dirCacheSequence identifies a successful OS directory read. Zero means that
+// no valid listing exists.
+type dirCacheSequence uint64
+
 // dirCacheEntry holds a cached directory listing. The per-entry mutex
 // serialises concurrent reads of the same directory without blocking reads
 // of distinct directories.
 type dirCacheEntry struct {
-	mu      sync.Mutex
-	fetched atomic.Int64 // Unix nanoseconds; zero means no valid entry
-	names   []string
-	entries []os.DirEntry
+	mu       sync.Mutex
+	fetched  atomic.Int64 // Unix nanoseconds; zero means no valid entry
+	sequence dirCacheSequence
+	names    []string
+	entries  []os.DirEntry
 }
 
 func (e *dirCacheEntry) age() time.Duration {
@@ -45,10 +50,11 @@ func (e *dirCacheEntry) age() time.Duration {
 	return time.Since(time.Unix(0, f))
 }
 
-// set timestamps the entry. Passing nil for both clears it so the next caller retries.
-func (e *dirCacheEntry) set(names []string, entries []os.DirEntry) {
+// set replaces the entry. Passing nil for both listings clears it so the next caller retries.
+func (e *dirCacheEntry) set(names []string, entries []os.DirEntry, sequence dirCacheSequence) {
 	e.names = names
 	e.entries = entries
+	e.sequence = sequence
 	if names != nil || entries != nil {
 		e.fetched.Store(time.Now().UnixNano())
 	} else {
@@ -63,6 +69,7 @@ type dirCache struct {
 	mu      sync.Mutex
 	entries map[string]*dirCacheEntry
 	swept   time.Time
+	nextSequence atomic.Uint64
 }
 
 func newDirCache() *dirCache {
@@ -88,53 +95,51 @@ func (c *dirCache) entry(dir string) *dirCacheEntry {
 	return e
 }
 
-// readDirNames returns sorted names for dir. shared=false bypasses the cache;
-// only the walk root passes shared=true so sub-directories are never cached.
-func (c *dirCache) readDirNames(dir string, maxAge time.Duration, shared bool) ([]string, error) {
-	if !shared {
-		return osDirNames(dir)
-	}
+// readDirNames returns sorted names for dir and the sequence of the listing.
+// A listing can be shared only when another scanner refreshed it since the
+// caller's previous scan. This prevents one scanner from reusing its own stale
+// listing while still coalescing reads from different scanners.
+func (c *dirCache) readDirNames(dir string, previous dirCacheSequence) ([]string, dirCacheSequence, error) {
 	e := c.entry(dir)
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	if e.age() < maxAge {
+	if e.sequence > previous && e.age() < maxDirCacheAge {
 		if e.names != nil {
-			return e.names, nil
+			return e.names, e.sequence, nil
 		}
 		if e.entries != nil {
 			e.names = entryNames(e.entries)
-			return e.names, nil
+			return e.names, e.sequence, nil
 		}
 	}
 	defer c.sweep()
 	names, err := osDirNames(dir)
 	if err != nil {
-		e.set(nil, nil)
-		return nil, err
+		e.set(nil, nil, 0)
+		return nil, 0, err
 	}
-	e.set(names, nil)
-	return names, nil
+	sequence := dirCacheSequence(c.nextSequence.Add(1))
+	e.set(names, nil, sequence)
+	return names, sequence, nil
 }
 
-// readDirEntries returns sorted DirEntries for dir. shared=false bypasses the cache.
-func (c *dirCache) readDirEntries(dir string, maxAge time.Duration, shared bool) ([]os.DirEntry, error) {
-	if !shared {
-		return os.ReadDir(dir)
-	}
+// readDirEntries is readDirNames for walks that need entry types.
+func (c *dirCache) readDirEntries(dir string, previous dirCacheSequence) ([]os.DirEntry, dirCacheSequence, error) {
 	e := c.entry(dir)
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	if e.age() < maxAge && e.entries != nil {
-		return e.entries, nil
+	if e.sequence > previous && e.age() < maxDirCacheAge && e.entries != nil {
+		return e.entries, e.sequence, nil
 	}
 	defer c.sweep()
 	entries, err := os.ReadDir(dir)
 	if err != nil {
-		e.set(nil, nil)
-		return nil, err
+		e.set(nil, nil, 0)
+		return nil, 0, err
 	}
-	e.set(nil, entries)
-	return entries, nil
+	sequence := dirCacheSequence(c.nextSequence.Add(1))
+	e.set(nil, entries, sequence)
+	return entries, sequence, nil
 }
 
 // sweep removes stale entries. Throttled to at most once per maxDirCacheAge;
